@@ -266,7 +266,7 @@ export async function exportMovementsToExcel(
     // Qtds / saldos
     ;[5, 6, 7, 8].forEach((col) => {
       const cell = row.getCell(col)
-      cell.numFmt = '#,##0.00'
+      cell.numFmt = '#,##0.##'
       cell.alignment = { horizontal: 'right', vertical: 'middle' }
     })
 
@@ -316,7 +316,7 @@ export async function exportMovementsToExcel(
     }
 
     if (colNumber === 5 || colNumber === 6) {
-      cell.numFmt = '#,##0.00'
+      cell.numFmt = '#,##0.##'
       cell.alignment = { horizontal: 'right', vertical: 'middle' }
     }
 
