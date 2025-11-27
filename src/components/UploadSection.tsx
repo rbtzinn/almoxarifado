@@ -6,7 +6,6 @@ import ConfirmDialog from './ui/ConfirmDialog'
 interface Props {
   onItemsLoaded: (items: AlmoxItem[]) => void
   currentItemCount: number
-  // novo: quem chama decide o que limpar (itens, movimentos etc.)
   onClearItems?: () => void
 }
 
@@ -26,7 +25,6 @@ const UploadSection: React.FC<Props> = ({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     setError(null)
     setLoading(true)
     setFileName(file.name)
@@ -34,196 +32,113 @@ const UploadSection: React.FC<Props> = ({
     try {
       const items = await parseItemsFromFile(file)
       if (!items.length) {
-        setError('Ops! Não achamos itens. Verifique os cabeçalhos da planilha.')
+        setError('O arquivo parece vazio. Verifique os cabeçalhos.')
         return
       }
       onItemsLoaded(items)
     } catch (err) {
       console.error(err)
-      setError('Erro ao ler o arquivo. Tem certeza que é um Excel válido?')
+      setError('Erro na leitura. Certifique-se que é um Excel válido.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleClearClick = () => {
-    if (!onClearItems) return
-    setShowConfirm(true)
-  }
-
-  const handleConfirmClear = () => {
-    // limpa estado local do componente
-    setFileName(null)
-    setError(null)
-    setShowConfirm(false)
-    // pede pro pai limpar os dados de fato (itens + movimentos, por ex.)
-    onClearItems?.()
-  }
-
-  const handleCancelClear = () => {
-    setShowConfirm(false)
-  }
-
   return (
     <>
-      <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 h-full flex flex-col">
-        <div className="flex items-start justify-between gap-4 mb-6">
+      <section className="relative group overflow-hidden rounded-3xl border border-white/10 bg-gray-900/40 backdrop-blur-xl shadow-2xl transition-all hover:shadow-cyan-500/10">
+        {/* Barra de progresso visual no topo */}
+        <div className={`absolute top-0 left-0 h-1 bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-1000 ${hasItems ? 'w-full' : 'w-0'}`} />
+
+        <div className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">1. Carregar Dados</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Importe sua planilha{' '}
-              <span className="font-medium text-indigo-600">.xlsx</span> para começar.
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              Central de Dados
+            </h2>
+            <p className="text-sm text-gray-400 mt-1 font-light">
+              Importe sua planilha para energizar o sistema.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
-              {currentItemCount} itens
-            </span>
+          <div className="flex items-center gap-3">
+            {/* Badge Neon */}
+            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 transition-all ${
+              hasItems 
+                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.2)]' 
+                : 'bg-white/5 border-white/10 text-gray-500'
+            }`}>
+              <span className="relative flex h-2 w-2">
+                {hasItems && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>}
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${hasItems ? 'bg-cyan-500' : 'bg-gray-600'}`}></span>
+              </span>
+              <span className="text-xs font-bold tracking-wider uppercase">{currentItemCount} Itens Ativos</span>
+            </div>
 
-            {hasItems && (
+            {hasItems && onClearItems && (
               <button
-                type="button"
-                onClick={handleClearClick}
-                className="inline-flex items-center justify-center p-1.5 rounded-full border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition"
-                title="Limpar dados carregados desta planilha"
+                onClick={() => setShowConfirm(true)}
+                className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all duration-300"
+                title="Descartar dados"
               >
-                {/* ícone lixeira */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M3 6h18" />
-                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  <path d="M10 11v6" />
-                  <path d="M14 11v6" />
-                  <path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
             )}
           </div>
         </div>
 
-        <label
-          className={[
-            'flex-1 flex flex-col items-center justify-center gap-3 px-6 py-8 border-2 border-dashed rounded-2xl transition-all duration-300 group',
-            disabled
-              ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'
-              : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 cursor-pointer',
-          ].join(' ')}
-        >
-          <div className="p-3 bg-indigo-50 text-indigo-500 rounded-full group-hover:scale-110 transition-transform">
-            {loading ? (
-              <svg
-                className="animate-spin h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                />
-              </svg>
-            )}
-          </div>
-          <div className="text-center">
-            <span className="text-sm font-semibold text-slate-700 block">
-              {loading
-                ? 'Processando...'
-                : hasItems
-                ? 'Planilha carregada'
-                : 'Clique para selecionar'}
-            </span>
-            <span className="text-xs text-slate-400 mt-1 block">
-              Planilhas Excel (.xlsx ou .xls)
-            </span>
-            {hasItems && (
-              <span className="text-[10px] text-slate-400 block mt-1">
-                Para trocar a planilha, limpe os dados usando o ícone de lixeira.
-              </span>
-            )}
-          </div>
-          <input
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={disabled}
-          />
-        </label>
+        {/* Área de Drop Futurista */}
+        <div className="px-8 pb-8">
+          <label
+            className={`
+              relative flex flex-col items-center justify-center h-40 rounded-2xl border-2 border-dashed transition-all duration-500 cursor-pointer overflow-hidden
+              ${disabled 
+                ? 'border-gray-700 bg-gray-800/50 opacity-50 cursor-not-allowed' 
+                : 'border-white/20 hover:border-cyan-400/50 hover:bg-cyan-500/5 group/drop'
+              }
+            `}
+          >
+            {/* Efeito de Scan no Hover */}
+            {!disabled && <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/5 to-transparent translate-y-[-100%] group-hover/drop:translate-y-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />}
 
-        <div className="mt-4 min-h-[1.5rem]">
-          {fileName && !error && (
-            <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="w-4 h-4 text-green-500"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="truncate max-w-[200px] font-medium">{fileName}</span>
+            <div className="z-10 flex flex-col items-center">
+              {loading ? (
+                 <div className="relative w-12 h-12">
+                   <div className="absolute inset-0 border-4 border-t-cyan-500 border-r-transparent border-b-purple-500 border-l-transparent rounded-full animate-spin"></div>
+                 </div>
+              ) : (
+                <div className={`p-4 rounded-full transition-all duration-300 ${hasItems ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-gray-400 group-hover/drop:scale-110 group-hover/drop:text-cyan-300'}`}>
+                  {hasItems ? (
+                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 011.04-.207z" clipRule="evenodd" /></svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                  )}
+                </div>
+              )}
+              
+              <div className="mt-4 text-center">
+                <span className={`text-sm font-medium transition-colors ${error ? 'text-red-400' : 'text-gray-300'}`}>
+                  {error || (loading ? 'Processando matrix...' : hasItems ? 'Arquivo carregado com sucesso' : 'Clique ou arraste sua planilha .xlsx')}
+                </span>
+                {fileName && !error && <p className="text-xs text-cyan-400 mt-1 font-mono tracking-tight">{fileName}</p>}
+              </div>
             </div>
-          )}
-          {error && (
-            <p className="text-xs text-rose-600 bg-rose-50 px-3 py-2 rounded-lg border border-rose-100">
-              {error}
-            </p>
-          )}
-          {!error && !fileName && (
-            <p className="text-xs text-slate-400 text-center">
-              Dica: Use os mesmos nomes de cabeçalho da planilha oficial.
-            </p>
-          )}
+            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} disabled={disabled} />
+          </label>
         </div>
       </section>
 
       <ConfirmDialog
         open={showConfirm}
-        title="Limpar dados desta planilha?"
-        description={
-          'Isso vai apagar os itens carregados e o histórico salvo neste navegador para esta planilha.\n\nVocê pode exportar os movimentos em Excel antes de limpar, se quiser manter um backup.'
-        }
-        confirmLabel="Sim, limpar"
+        title="Formatar Sistema?"
+        description="Isso limpará todos os dados da memória local. Tenha certeza que salvou o que precisava."
+        confirmLabel="Sim, Limpar Tudo"
         cancelLabel="Cancelar"
-        onConfirm={handleConfirmClear}
-        onCancel={handleCancelClear}
+        onConfirm={() => {
+          onClearItems?.()
+          setShowConfirm(false)
+          setFileName(null)
+        }}
+        onCancel={() => setShowConfirm(false)}
       />
     </>
   )

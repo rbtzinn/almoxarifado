@@ -1,174 +1,124 @@
 import React, { useEffect, useState } from 'react'
 import type { AlmoxItem, Movement } from './types'
 import { loadItems, loadMovements, saveItems, saveMovements } from './utils/storage'
-import { exportMovementsToExcel } from './utils/excel'
 import { syncMovementsToGoogleSheet } from './utils/sheets'
-import UploadSection from './components/UploadSection'
+import { exportMovementsToExcel } from './utils/excel'
+
+// Componentes
+import Sidebar from './components/Sidebar' 
 import MovementForm from './components/MovementForm'
 import ItemsTable from './components/ItemsTable'
 import HistoryPanel from './components/HistoryPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 
 const App: React.FC = () => {
+  // --- Estados de Dados ---
   const [items, setItems] = useState<AlmoxItem[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
-  const [showClearAllDialog, setShowClearAllDialog] = useState(false)
-  const [syncingSheets, setSyncingSheets] = useState(false)
+  
+  // --- Estados de UI ---
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // Mobile Menu
+  const [showClearDialog, setShowClearDialog] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
+  // --- Effects (Persistência) ---
   useEffect(() => {
     setItems(loadItems())
     setMovements(loadMovements())
   }, [])
 
-  useEffect(() => {
-    saveItems(items)
-  }, [items])
+  useEffect(() => { saveItems(items) }, [items])
+  useEffect(() => { saveMovements(movements) }, [movements])
 
-  useEffect(() => {
-    saveMovements(movements)
-  }, [movements])
-
-  const handleItemsLoaded = (newItems: AlmoxItem[]) => {
-    setItems(newItems)
-  }
-
-  const handleAddMovement = (movement: Movement) => {
-    setMovements((prev) => [...prev, movement])
-  }
-
-  const handleExportMovements = () => {
-    exportMovementsToExcel(items, movements)
-  }
-
-  // Função que realmente limpa tudo (itens + movimentos + localStorage)
-  const clearAllData = () => {
+  // --- Handlers ---
+  const handleItemsLoaded = (newItems: AlmoxItem[]) => setItems(newItems)
+  const handleAddMovement = (mov: Movement) => setMovements(prev => [...prev, mov])
+  
+  const handleClearAllData = () => {
     setItems([])
     setMovements([])
     saveItems([])
     saveMovements([])
+    setShowClearDialog(false)
   }
 
-  // Abre o dialog global do header
-  const handleClearAllClick = () => {
-    setShowClearAllDialog(true)
-  }
-
-  const handleConfirmClearAll = () => {
-    clearAllData()
-    setShowClearAllDialog(false)
-  }
-
-  const handleCancelClearAll = () => {
-    setShowClearAllDialog(false)
-  }
-
-  const handleSyncSheets = async () => {
-    if (!items.length || !movements.length) {
-      alert('Carregue uma planilha e registre ao menos uma movimentação antes de sincronizar.')
-      return
-    }
-
-    setSyncingSheets(true)
-    try {
-      await syncMovementsToGoogleSheet(items, movements)
-    } finally {
-      setSyncingSheets(false)
-    }
+  const handleSync = async () => {
+    if (!items.length) return alert('Sem dados para sincronizar.')
+    setSyncing(true)
+    try { await syncMovementsToGoogleSheet(items, movements) }
+    finally { setSyncing(false) }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-slate-600 selection:bg-indigo-100 selection:text-indigo-700">
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-30 shadow-sm/50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-200">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path d="M4.606 12.97a.75.75 0 01-.134 1.051 2.494 2.494 0 00-.93 2.437 2.494 2.494 0 002.437-.93.75.75 0 111.186.918 3.995 3.995 0 01-3.217 1.48 3.995 3.995 0 01-1.48-3.217 3.995 3.995 0 011.088-2.871.75.75 0 011.05.132z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M3.974 4.197c-1.353 1.96-1.092 4.618.72 6.43a.75.75 0 11-1.06 1.06 6.75 6.75 0 01-.97-8.307.75.75 0 011.31.817zm2.483-1.69c1.96-1.353 4.618-1.092 6.43.72a.75.75 0 101.06-1.06 6.75 6.75 0 00-8.307-.97.75.75 0 00.817 1.31z"
-                    clipRule="evenodd"
-                  />
-                  <path d="M11.754 6.134a.75.75 0 01.442 1.065 2.494 2.494 0 001.558.826 2.494 2.494 0 002.134-1.63.75.75 0 111.416.495 3.995 3.995 0 01-3.414 2.61 3.995 3.995 0 01-2.494-1.32 3.995 3.995 0 01-1.127-2.943.75.75 0 011.485.897z" />
-                </svg>
-              </span>
-              <span>Almoxarifado</span>
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5 ml-1">
-              Controle simplificado de estoque
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExportMovements}
-              className="hidden sm:inline-flex items-center rounded-xl bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!movements.length}
-            >
-              Baixar Excel
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSyncSheets}
-              className="hidden sm:inline-flex items-center rounded-xl bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!items.length || !movements.length || syncingSheets}
-            >
-              {syncingSheets ? 'Atualizando...' : 'Atualizar no Sheets'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClearAllClick}
-              className="inline-flex items-center rounded-xl px-4 py-2 text-xs font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-            >
-              Limpar
-            </button>
-          </div>
+    <div className="min-h-screen bg-[#F9FAFB] text-slate-600 font-sans selection:bg-gray-200 selection:text-black">
+      
+      {/* --- MENU MOBILE (Header) --- */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-40 shadow-sm">
+        <div className="font-semibold text-slate-800 flex items-center gap-2">
+          <div className="w-6 h-6 bg-slate-900 rounded-md" /> 
+          Almoxarifado
         </div>
-      </header>
+        <button 
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 text-slate-500 hover:bg-gray-50 rounded-lg"
+        >
+          {/* Icon Hamburger */}
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 h-full">
-            <UploadSection
-              onItemsLoaded={handleItemsLoaded}
-              currentItemCount={items.length}
-              // a lixeira do upload usa essa função sem confirm (o confirm está dentro do UploadSection)
-              onClearItems={clearAllData}
-            />
-          </div>
-          <div className="lg:col-span-1 h-full">
+      {/* --- SIDEBAR (Importação & Ações) --- */}
+      {/* Overlay Escuro no Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        fixed top-0 left-0 bottom-0 z-50 w-80 bg-white border-r border-gray-100 shadow-xl lg:shadow-none transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <Sidebar 
+          onCloseMobile={() => setIsSidebarOpen(false)}
+          onItemsLoaded={handleItemsLoaded}
+          currentItemCount={items.length}
+          onClear={() => setShowClearDialog(true)}
+          onExport={() => exportMovementsToExcel(items, movements)}
+          onSync={handleSync}
+          isSyncing={syncing}
+          hasData={items.length > 0}
+        />
+      </aside>
+
+      {/* --- CONTEÚDO PRINCIPAL (Main) --- */}
+      <main className="lg:ml-80 p-4 lg:p-10 pt-20 lg:pt-10 space-y-8 max-w-[1600px]">
+        
+        {/* Grid Superior: Formulário + Painel de Histórico (lado a lado em telas grandes) */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          <div className="xl:col-span-5 h-full">
             <MovementForm items={items} onAddMovement={handleAddMovement} />
           </div>
+          <div className="xl:col-span-7 h-full">
+            <HistoryPanel items={items} movements={movements} />
+          </div>
         </div>
 
-        <ItemsTable items={items} movements={movements} />
+        {/* Tabela de Itens (Ocupa a largura toda abaixo) */}
+        <div className="w-full">
+           <ItemsTable items={items} movements={movements} />
+        </div>
 
-        <HistoryPanel items={items} movements={movements} />
       </main>
 
-      <footer className="text-center py-8 text-xs text-slate-400">
-        <p>© 2025 Controle de Almoxarifado • Design Intuitivo</p>
-      </footer>
-
-      {/* Dialog global do botão "Limpar" do header */}
       <ConfirmDialog
-        open={showClearAllDialog}
-        title="Limpar todos os dados?"
-        description={
-          'Isso vai apagar os itens carregados e todo o histórico de movimentos salvos neste navegador.\n\nRecomendo exportar o Excel antes, se você quiser manter um backup.'
-        }
-        confirmLabel="Sim, limpar tudo"
-        cancelLabel="Cancelar"
-        onConfirm={handleConfirmClearAll}
-        onCancel={handleCancelClearAll}
+        open={showClearDialog}
+        title="Resetar Sistema"
+        description="Deseja remover todos os itens e históricos importados?"
+        confirmLabel="Sim, Limpar"
+        onConfirm={handleClearAllData}
+        onCancel={() => setShowClearDialog(false)}
       />
     </div>
   )
