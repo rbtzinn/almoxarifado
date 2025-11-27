@@ -255,20 +255,19 @@ export async function exportMovementsToExcel(
       saida || null,
       saldoAntes,
       saldoDepois,
-      movement.document ?? '',
+      movement.document || movement.attachmentName || '',
       movement.notes ?? '',
     ])
-
     // Data
     row.getCell(1).numFmt = 'dd/mm/yyyy'
     row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
 
-    // Qtds / saldos
-    ;[5, 6, 7, 8].forEach((col) => {
-      const cell = row.getCell(col)
-      cell.numFmt = '#,##0.##'
-      cell.alignment = { horizontal: 'right', vertical: 'middle' }
-    })
+      // Qtds / saldos
+      ;[5, 6, 7, 8].forEach((col) => {
+        const cell = row.getCell(col)
+        cell.numFmt = '#,##0.##'
+        cell.alignment = { horizontal: 'right', vertical: 'middle' }
+      })
 
     // Zebra
     if (index % 2 === 0) {

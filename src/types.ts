@@ -10,10 +10,11 @@ export type MovementType = 'entrada' | 'saida'
 
 export interface Movement {
   id: string
-  date: string // yyyy-mm-dd
+  date: string
   itemId: string
   type: MovementType
   quantity: number
-  document?: string
+  document?: string      // NF, ofício, etc.
   notes?: string
+  attachmentName?: string
 }

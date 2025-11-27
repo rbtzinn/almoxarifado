@@ -27,7 +27,9 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-800">3. Visão Geral do Estoque</h2>
-          <p className="text-sm text-slate-500">Saldo atual considerando todas as movimentações.</p>
+          <p className="text-sm text-slate-500">
+            Saldo atual considerando todas as movimentações.
+          </p>
         </div>
         <div className="text-right hidden sm:block">
           <span className="text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
@@ -99,12 +101,30 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
                     ? 'Estoque abaixo do nível mínimo (20)'
                     : 'Estoque dentro do nível esperado'
 
+                // >>> NOVO: classe para DESTACAR A LINHA TODA <<<
+                const rowHighlightClass =
+                  currentStock <= 0
+                    ? 'bg-rose-50/80 ring-1 ring-rose-200'
+                    : currentStock < 20
+                    ? 'bg-amber-50/80 ring-1 ring-amber-200'
+                    : ''
+
+                // opcional: borda lateral forte (ajuda a chamar mais atenção)
+                const leftBorderClass =
+                  currentStock <= 0
+                    ? 'border-l-4 border-rose-500'
+                    : currentStock < 20
+                    ? 'border-l-4 border-amber-400'
+                    : ''
+
                 return (
                   <tr
                     key={item.id}
-                    className="hover:bg-slate-50/80 transition-colors"
+                    className={`hover:bg-slate-50/80 transition-colors ${rowHighlightClass}`}
                   >
-                    <td className="px-5 py-4 first:pl-6 align-top">
+                    <td
+                      className={`px-5 py-4 first:pl-6 align-top ${leftBorderClass}`}
+                    >
                       <p className="font-medium text-slate-700">
                         {item.description}
                       </p>

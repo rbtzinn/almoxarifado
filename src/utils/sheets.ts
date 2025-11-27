@@ -60,7 +60,7 @@ function buildRows(items: AlmoxItem[], movements: Movement[]): RowToSend[] {
         saida,
         saldoAntes,
         saldoDepois,
-        document: m.document ?? '',
+        document: m.document || m.attachmentName || '',
         notes: m.notes ?? '',
       })
     }

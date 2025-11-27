@@ -8,18 +8,42 @@ interface Props {
 
 const MovementForm: React.FC<Props> = ({ items, onAddMovement }) => {
   const today = new Date().toISOString().slice(0, 10)
+  
+  // Estados do formulário
   const [date, setDate] = useState(today)
-  const [itemId, setItemId] = useState('')
   const [type, setType] = useState<MovementType>('saida')
   const [quantity, setQuantity] = useState('')
-  const [document, setDocument] = useState('')
+  const [docRef, setDocRef] = useState('')
   const [notes, setNotes] = useState('')
+  const [attachmentName, setAttachmentName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Estados simplificados para o Item
+  const [itemSearch, setItemSearch] = useState('') // O texto que aparece no input
+  const [selectedItemId, setSelectedItemId] = useState('') // O ID real selecionado
+
+  const disabled = !items.length
+
+  // Função simplificada de seleção via Datalist
+  const handleItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setItemSearch(val)
+    setError(null)
+
+    // Tenta encontrar o item que bate exatamente com o texto digitado/selecionado
+    const found = items.find((item) => item.description === val)
+    if (found) {
+      setSelectedItemId(found.id)
+    } else {
+      setSelectedItemId('') // Se o texto não bate com nenhum item, limpa o ID
+    }
+  }
+
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!itemId) {
-      setError('Por favor, escolha um item.')
+
+    if (!selectedItemId) {
+      setError('Por favor, selecione um item válido da lista.')
       return
     }
 
@@ -34,24 +58,36 @@ const MovementForm: React.FC<Props> = ({ items, onAddMovement }) => {
     const movement: Movement = {
       id: `mov-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       date,
-      itemId,
+      itemId: selectedItemId,
       type,
       quantity: parsedQty,
-      document: document.trim() || undefined,
+      document: docRef.trim() || undefined,
       notes: notes.trim() || undefined,
+      attachmentName: attachmentName || undefined,
     }
 
     onAddMovement(movement)
+
+    // Limpeza do formulário
     setQuantity('')
-    setDocument('')
+    setDocRef('')
     setNotes('')
+    setAttachmentName(null)
+
+    // 🔹 limpa também o item escolhido
+    setItemSearch('')
+    setSelectedItemId('')
   }
 
-  const disabled = !items.length
 
-  // Estilos reutilizáveis para inputs
-  const inputClass = "w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:bg-white outline-none transition-all placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
-  const labelClass = "text-xs font-semibold text-slate-500 ml-1 mb-1.5 block"
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    setAttachmentName(file ? file.name : null)
+  }
+
+  const inputClass =
+    'w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:bg-white outline-none transition-all placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed'
+  const labelClass = 'text-xs font-semibold text-slate-500 ml-1 mb-1.5 block'
 
   return (
     <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 h-full">
@@ -121,30 +157,42 @@ const MovementForm: React.FC<Props> = ({ items, onAddMovement }) => {
           </div>
         </div>
 
+        {/* --- AQUI ESTÁ A MUDANÇA: INPUT COM DATALIST --- */}
         <div>
-          <label className={labelClass}>Item</label>
-          <select
-            value={itemId}
-            onChange={(e) => setItemId(e.target.value)}
-            className={`${inputClass} appearance-none`}
+          <label className={labelClass}>Item (Buscar)</label>
+          <input
+            list="items-list" // Conecta ao datalist abaixo
+            type="text"
+            value={itemSearch}
+            onChange={handleItemChange}
+            className={inputClass}
+            placeholder={disabled ? 'Sem itens...' : 'Digite para buscar ou selecione...'}
             disabled={disabled}
-          >
-            <option value="">Selecione o item...</option>
+          />
+          
+          {/* A lista nativa oculta que o navegador usa para autocomplete */}
+          <datalist id="items-list">
             {items.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.description}
-              </option>
+              <option key={item.id} value={item.description} />
             ))}
-          </select>
+          </datalist>
+
+          {/* Feedback visual se encontrou o ID ou não (opcional, para debug/certeza) */}
+          {!selectedItemId && itemSearch.length > 0 && (
+            <p className="text-[10px] text-amber-600 mt-1 ml-1">
+              Selecione uma opção da lista para confirmar.
+            </p>
+          )}
         </div>
+        {/* ----------------------------------------------- */}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Doc. (Opcional)</label>
             <input
               type="text"
-              value={document}
-              onChange={(e) => setDocument(e.target.value)}
+              value={docRef}
+              onChange={(e) => setDocRef(e.target.value)}
               className={inputClass}
               placeholder="Ex: NF-123"
               disabled={disabled}
@@ -163,7 +211,22 @@ const MovementForm: React.FC<Props> = ({ items, onAddMovement }) => {
           </div>
         </div>
 
-        {error && <p className="text-xs text-rose-500 px-1">{error}</p>}
+        <div>
+          <label className={labelClass}>Anexo (Opcional)</label>
+          <input
+            type="file"
+            onChange={handleAttachmentChange}
+            className={inputClass}
+            disabled={disabled}
+          />
+          {attachmentName && (
+            <p className="mt-1 text-[11px] text-slate-500 ml-1">
+              Arquivo: <span className="font-medium">{attachmentName}</span>
+            </p>
+          )}
+        </div>
+
+        {error && <p className="text-xs text-rose-500 px-1 font-medium">{error}</p>}
 
         <button
           type="submit"
