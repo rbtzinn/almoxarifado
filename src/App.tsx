@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import type { AlmoxItem, Movement } from './types'
 import { loadItems, loadMovements, saveItems, saveMovements } from './utils/storage'
 import { exportMovementsToExcel } from './utils/excel'
+import { syncMovementsToGoogleSheet } from './utils/sheets'
 import UploadSection from './components/UploadSection'
 import MovementForm from './components/MovementForm'
 import ItemsTable from './components/ItemsTable'
@@ -12,6 +13,7 @@ const App: React.FC = () => {
   const [items, setItems] = useState<AlmoxItem[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
   const [showClearAllDialog, setShowClearAllDialog] = useState(false)
+  const [syncingSheets, setSyncingSheets] = useState(false)
 
   useEffect(() => {
     setItems(loadItems())
@@ -60,6 +62,20 @@ const App: React.FC = () => {
     setShowClearAllDialog(false)
   }
 
+  const handleSyncSheets = async () => {
+    if (!items.length || !movements.length) {
+      alert('Carregue uma planilha e registre ao menos uma movimentação antes de sincronizar.')
+      return
+    }
+
+    setSyncingSheets(true)
+    try {
+      await syncMovementsToGoogleSheet(items, movements)
+    } finally {
+      setSyncingSheets(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-slate-600 selection:bg-indigo-100 selection:text-indigo-700">
       <header className="bg-white border-b border-slate-100 sticky top-0 z-30 shadow-sm/50">
@@ -97,6 +113,16 @@ const App: React.FC = () => {
             >
               Baixar Excel
             </button>
+
+            <button
+              type="button"
+              onClick={handleSyncSheets}
+              className="hidden sm:inline-flex items-center rounded-xl bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!items.length || !movements.length || syncingSheets}
+            >
+              {syncingSheets ? 'Atualizando...' : 'Atualizar no Sheets'}
+            </button>
+
             <button
               type="button"
               onClick={handleClearAllClick}
