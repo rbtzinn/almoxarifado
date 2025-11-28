@@ -1,6 +1,18 @@
+// src/components/Sidebar.tsx
 import React, { useState } from 'react'
 import { parseItemsFromFile } from '../utils/excel'
 import type { AlmoxItem } from '../types'
+import { 
+  LayoutDashboard, 
+  UploadCloud, 
+  FileSpreadsheet, 
+  RefreshCw, 
+  Download, 
+  Trash2, 
+  X,
+  CheckCircle2,
+  Package
+} from 'lucide-react'
 
 interface SidebarProps {
   onCloseMobile: () => void
@@ -41,63 +53,61 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   }
 
-  // Estilos de Botão Comuns (Minimalistas)
-  const btnClass = "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 border border-transparent"
-  const btnPrimary = `${btnClass} text-slate-600 hover:bg-slate-50 hover:text-slate-900`
-  const btnAction = `${btnClass} border-gray-200 text-slate-700 hover:border-slate-300 bg-white shadow-sm`
+  // Estilos de Botão
+  const btnClass = "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 border border-transparent group"
+  const btnPrimary = `${btnClass} text-slate-600 hover:bg-indigo-50 hover:text-indigo-700`
+  const btnDanger = `${btnClass} text-rose-600 hover:bg-rose-50 hover:text-rose-700 mt-auto`
 
   return (
     <div className="flex flex-col h-full bg-white text-slate-600">
       
       {/* Header Sidebar */}
-      <div className="p-6 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-slate-200">
-            AX
+      <div className="p-6 pb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
+            <LayoutDashboard size={20} />
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 text-lg tracking-tight">Almoxarifado</h1>
-            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Gestão v2.0</p>
+            <h1 className="font-bold text-slate-800 text-lg tracking-tight leading-none">Almoxarifado</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Gestão v2.0</p>
           </div>
         </div>
-        {/* Fechar no Mobile */}
-        <button onClick={onCloseMobile} className="lg:hidden p-2 text-slate-400">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        <button onClick={onCloseMobile} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
+          <X size={20} />
         </button>
       </div>
 
-      <div className="px-6 py-4">
-        <hr className="border-gray-100" />
+      <div className="px-6 mb-6">
+        <hr className="border-slate-100" />
       </div>
 
-      {/* Área de Importação (Destaque) */}
+      {/* Área de Importação */}
       <div className="px-6 mb-6">
         <label className={`
-          group relative flex flex-col items-center justify-center w-full h-32 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden
+          group relative flex flex-col items-center justify-center w-full h-36 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden
           ${hasData 
-            ? 'border-emerald-100 bg-emerald-50/30' 
-            : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50'
+            ? 'border-emerald-200 bg-emerald-50/50' 
+            : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'
           }
         `}>
-          <div className="text-center z-10 p-4">
+          <div className="text-center z-10 p-4 flex flex-col items-center">
             {loading ? (
-               <div className="animate-spin w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full mx-auto"/>
+               <div className="animate-spin w-6 h-6 border-2 border-slate-300 border-t-indigo-600 rounded-full mb-2"/>
             ) : hasData ? (
                <>
-                 <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                 <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2 shadow-sm">
+                   <FileSpreadsheet size={20} />
                  </div>
-                 <p className="text-xs font-semibold text-emerald-700">Planilha Ativa</p>
-                 <p className="text-[10px] text-emerald-600/70 truncate max-w-[180px]">{fileName || 'dados_importados.xlsx'}</p>
-                 <p className="text-[10px] mt-1 text-slate-400">Clique para trocar</p>
+                 <p className="text-xs font-bold text-emerald-700">Planilha Ativa</p>
+                 <p className="text-[10px] text-emerald-600/70 truncate max-w-[140px] mt-0.5">{fileName || 'dados.xlsx'}</p>
                </>
             ) : (
                <>
-                 <div className="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                 <div className="w-10 h-10 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all duration-300">
+                   <UploadCloud size={20} />
                  </div>
-                 <p className="text-xs font-semibold text-slate-700">Importar Excel</p>
-                 <p className="text-[10px] text-slate-400">Arraste ou clique</p>
+                 <p className="text-xs font-bold text-slate-700 group-hover:text-indigo-700 transition-colors">Importar Excel</p>
+                 <p className="text-[10px] text-slate-400 mt-1">Arraste ou clique aqui</p>
                </>
             )}
           </div>
@@ -105,50 +115,58 @@ const Sidebar: React.FC<SidebarProps> = ({
         </label>
         
         {hasData && (
-          <div className="mt-4 flex items-center justify-between px-1">
-             <span className="text-xs font-medium text-slate-500">Itens carregados</span>
-             <span className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">{currentItemCount}</span>
+          <div className="mt-3 flex items-center justify-between px-2 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+             <div className="flex items-center gap-2">
+                <Package size={14} className="text-slate-400"/>
+                <span className="text-xs font-medium text-slate-500">Itens carregados</span>
+             </div>
+             <span className="text-xs font-bold text-slate-800">{currentItemCount}</span>
           </div>
         )}
       </div>
 
-      {/* Menu Navigation / Ações */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        
-        {hasData && (
+      {/* Menu Navigation */}
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar flex flex-col pb-4">
+        {hasData ? (
           <>
             <button onClick={onSync} disabled={isSyncing} className={btnPrimary}>
               {isSyncing ? (
-                 <span className="w-4 h-4 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin" />
+                 <RefreshCw size={18} className="animate-spin text-indigo-600" />
               ) : (
-                 <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                 <RefreshCw size={18} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
               )}
               Sync Planilha
             </button>
 
             <button onClick={onExport} className={btnPrimary}>
-              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <Download size={18} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
               Baixar Histórico
             </button>
 
-            <div className="pt-4 pb-2">
-              <div className="border-t border-gray-100" />
-            </div>
+            <div className="my-4 border-t border-slate-100 mx-2" />
 
-            <button onClick={onClear} className={`${btnClass} text-rose-600 hover:bg-rose-50`}>
-              <svg className="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            <button onClick={onClear} className={btnDanger}>
+              <Trash2 size={18} className="opacity-70 group-hover:opacity-100" />
               Limpar Tudo
             </button>
           </>
+        ) : (
+          <div className="px-4 py-8 text-center opacity-50">
+             <p className="text-xs text-slate-400">Importe uma planilha para habilitar as ações.</p>
+          </div>
         )}
       </nav>
 
-      <div className="p-6">
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status do Sistema</p>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-xs font-medium text-slate-600">Online e Operante</span>
+      {/* Footer Status */}
+      <div className="p-6 pt-2">
+        <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
+          <div className="relative">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute top-0 left-0 opacity-75"></span>
+          </div>
+          <div>
+             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Status</p>
+             <p className="text-xs font-semibold text-slate-700">Sistema Online</p>
           </div>
         </div>
       </div>

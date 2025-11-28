@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useEffect, useState } from 'react'
 import type { AlmoxItem, Movement } from './types'
 import { loadItems, loadMovements, saveItems, saveMovements } from './utils/storage'
@@ -5,35 +6,42 @@ import { syncMovementsToGoogleSheet } from './utils/sheets'
 import { exportMovementsToExcel } from './utils/excel'
 
 // Componentes
-import Sidebar from './components/Sidebar' 
+import Sidebar from './components/Sidebar'
 import MovementForm from './components/MovementForm'
 import ItemsTable from './components/ItemsTable'
 import HistoryPanel from './components/HistoryPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'
+import LocalChangesCard from './components/LocalChangesCard'
+import { Menu } from 'lucide-react'
 
 const App: React.FC = () => {
   // --- Estados de Dados ---
   const [items, setItems] = useState<AlmoxItem[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
-  
+
   // --- Estados de UI ---
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // Mobile Menu
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [syncing, setSyncing] = useState(false)
 
-  // --- Effects (Persistência) ---
+  // --- Effects ---
   useEffect(() => {
     setItems(loadItems())
     setMovements(loadMovements())
   }, [])
 
-  useEffect(() => { saveItems(items) }, [items])
-  useEffect(() => { saveMovements(movements) }, [movements])
+  useEffect(() => {
+    saveItems(items)
+  }, [items])
+
+  useEffect(() => {
+    saveMovements(movements)
+  }, [movements])
 
   // --- Handlers ---
   const handleItemsLoaded = (newItems: AlmoxItem[]) => setItems(newItems)
   const handleAddMovement = (mov: Movement) => setMovements(prev => [...prev, mov])
-  
+
   const handleClearAllData = () => {
     setItems([])
     setMovements([])
@@ -45,42 +53,47 @@ const App: React.FC = () => {
   const handleSync = async () => {
     if (!items.length) return alert('Sem dados para sincronizar.')
     setSyncing(true)
-    try { await syncMovementsToGoogleSheet(items, movements) }
-    finally { setSyncing(false) }
+    try {
+      const updatedList = await syncMovementsToGoogleSheet(items, movements)
+      if (updatedList) setMovements(updatedList)
+    } finally {
+      setSyncing(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] text-slate-600 font-sans selection:bg-gray-200 selection:text-black">
-      
+    <div className="min-h-screen bg-slate-50/50 text-slate-600 font-sans selection:bg-indigo-100 selection:text-indigo-900 flex">
       {/* --- MENU MOBILE (Header) --- */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-40 shadow-sm">
-        <div className="font-semibold text-slate-800 flex items-center gap-2">
-          <div className="w-6 h-6 bg-slate-900 rounded-md" /> 
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-40 shadow-sm">
+        <div className="font-bold text-slate-800 flex items-center gap-2 text-lg">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-200 shadow-lg">
+            A
+          </div>
           Almoxarifado
         </div>
-        <button 
+        <button
           onClick={() => setIsSidebarOpen(true)}
-          className="p-2 text-slate-500 hover:bg-gray-50 rounded-lg"
+          className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg active:scale-95 transition-transform"
         >
-          {/* Icon Hamburger */}
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          <Menu className="w-6 h-6" />
         </button>
       </div>
 
-      {/* --- SIDEBAR (Importação & Ações) --- */}
-      {/* Overlay Escuro no Mobile */}
+      {/* --- SIDEBAR --- */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+        <div
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      <aside className={`
-        fixed top-0 left-0 bottom-0 z-50 w-80 bg-white border-r border-gray-100 shadow-xl lg:shadow-none transition-transform duration-300 ease-in-out
+      <aside
+        className={`
+        fixed lg:sticky top-0 left-0 bottom-0 z-50 h-screen w-72 bg-white border-r border-slate-200 shadow-2xl lg:shadow-none transition-transform duration-300 ease-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <Sidebar 
+      `}
+      >
+        <Sidebar
           onCloseMobile={() => setIsSidebarOpen(false)}
           onItemsLoaded={handleItemsLoaded}
           currentItemCount={items.length}
@@ -92,31 +105,57 @@ const App: React.FC = () => {
         />
       </aside>
 
-      {/* --- CONTEÚDO PRINCIPAL (Main) --- */}
-      <main className="lg:ml-80 p-4 lg:p-10 pt-20 lg:pt-10 space-y-8 max-w-[1600px]">
-        
-        {/* Grid Superior: Formulário + Painel de Histórico (lado a lado em telas grandes) */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="xl:col-span-5 h-full">
-            <MovementForm items={items} onAddMovement={handleAddMovement} />
+      {/* --- CONTEÚDO PRINCIPAL --- */}
+      <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8 overflow-x-hidden w-full max-w-[1920px] mx-auto">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header Area (Desktop) */}
+          <div className="hidden lg:flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+              <p className="text-sm text-slate-500">
+                Gerencie entradas, saídas e audite o estoque.
+              </p>
+            </div>
+            <div className="text-xs font-medium bg-white px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 shadow-sm">
+              {new Date().toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </div>
           </div>
-          <div className="xl:col-span-7 h-full">
-            <HistoryPanel items={items} movements={movements} />
+
+          {/* Grid Principal */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
+            {/* Coluna Esquerda: Form */}
+            <div className="xl:col-span-4">
+              <MovementForm items={items} onAddMovement={handleAddMovement} />
+            </div>
+
+            {/* Coluna Direita: Painéis */}
+            <div className="xl:col-span-8 flex flex-col">
+              <HistoryPanel items={items} movements={movements} />
+            </div>
+          </div>
+
+          {/* Fila de Sync */}
+          <div className="w-full pt-2">
+            <LocalChangesCard items={items} movements={movements} />
+          </div>
+
+          {/* Tabela de Itens */}
+          <div className="w-full pt-2">
+            <ItemsTable items={items} movements={movements} />
           </div>
         </div>
-
-        {/* Tabela de Itens (Ocupa a largura toda abaixo) */}
-        <div className="w-full">
-           <ItemsTable items={items} movements={movements} />
-        </div>
-
       </main>
 
       <ConfirmDialog
         open={showClearDialog}
         title="Resetar Sistema"
-        description="Deseja remover todos os itens e históricos importados?"
-        confirmLabel="Sim, Limpar"
+        description="Isso removerá todos os dados do navegador. Tem certeza?"
+        confirmLabel="Sim, Limpar tudo"
         onConfirm={handleClearAllData}
         onCancel={() => setShowClearDialog(false)}
       />

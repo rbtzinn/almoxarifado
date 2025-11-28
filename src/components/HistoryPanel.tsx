@@ -1,23 +1,19 @@
+// src/components/HistoryPanel.tsx
 import React, { useEffect, useMemo, useState, useRef } from 'react'
 import type { AlmoxItem, Movement } from '../types'
 import { getMovementsForItemUpToDate, getStockOnDate } from '../utils/stock'
+import { Calendar, Search, ChevronDown, History, Filter } from 'lucide-react'
 
-interface Props {
-  items: AlmoxItem[]
-  movements: Movement[]
-}
+interface Props { items: AlmoxItem[]; movements: Movement[] }
 
 const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
   const todayIso = new Date().toISOString().slice(0, 10)
   const [selectedItemId, setSelectedItemId] = useState<string>('')
   const [selectedDate, setSelectedDate] = useState<string>(todayIso)
-  
-  // States de Busca Customizada
   const [itemSearch, setItemSearch] = useState<string>('')
   const [isItemOpen, setIsItemOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
 
-  // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) { setIsItemOpen(false) }
@@ -26,14 +22,12 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Filtra itens
   const filteredItems = useMemo(() => {
     const term = itemSearch.trim().toLowerCase()
     if (!term) return items
     return items.filter(i => i.description.toLowerCase().includes(term))
   }, [items, itemSearch])
 
-  // Seleciona o primeiro automaticamente se nada selecionado
   useEffect(() => {
     if (!selectedItemId && filteredItems.length) {
       setSelectedItemId(filteredItems[0].id)
@@ -43,135 +37,202 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
 
   const selectedItem = filteredItems.find((i) => i.id === selectedItemId) || null
 
-  // Cálculos de estoque na data
   const { stock, entradas, saidas, relevantMovs } = useMemo(() => {
     if (!selectedItem) return { stock: 0, entradas: 0, saidas: 0, relevantMovs: [] }
-    
     const relevant = getMovementsForItemUpToDate(selectedItem.id, movements, selectedDate)
-      .sort((a, b) => (a.date < b.date ? 1 : -1)) // Mais recente no topo
-
+      .sort((a, b) => (a.date < b.date ? 1 : -1)) 
     const stockValue = getStockOnDate(selectedItem.id, items, movements, selectedDate)
     const entradasTotal = relevant.filter((m) => m.type === 'entrada').reduce((sum, m) => sum + m.quantity, 0)
     const saidasTotal = relevant.filter((m) => m.type === 'saida').reduce((sum, m) => sum + m.quantity, 0)
-
     return { stock: stockValue, entradas: entradasTotal, saidas: saidasTotal, relevantMovs: relevant }
   }, [selectedItem, movements, selectedDate, items])
 
-  // Estilos Clean Atualizados (Maior contraste e tamanho)
-  const inputClass = "w-full rounded-xl border border-transparent bg-gray-50 px-4 py-3 text-sm text-slate-700 placeholder:text-gray-400 focus:bg-white focus:border-slate-200 focus:ring-0 transition-all outline-none"
-  const labelClass = "block text-xs font-semibold text-slate-500 mb-1.5 ml-1"
+  // --- Estilos Atualizados ---
+  // h-10 ou h-11 define a altura fixa. cursor-text ajuda na UX.
+  const inputContainer = "group flex items-center w-full rounded-xl bg-slate-50 border border-slate-200 focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all h-11 cursor-text overflow-hidden"
+  
+  // h-full garante que o input ocupe toda a altura do container pai (aumentando a área de clique)
+  const inputField = "w-full h-full bg-transparent border-none text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:ring-0 px-3 outline-none"
+  
+  const labelClass = "text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1 block"
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full flex flex-col">
-      <div className="mb-6 border-b border-gray-50 pb-4">
-        <h2 className="text-lg font-bold text-slate-800">Máquina do Tempo</h2>
-        <p className="text-sm text-slate-400">Analise o saldo em datas passadas.</p>
-      </div>
+    <section className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full max-h-[520px] overflow-hidden">
+      
+      {/* Header Padronizado (Igual aos outros Cards) */}
+      <header className="p-5 border-b border-slate-50 bg-white shrink-0 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 text-indigo-600">
+            <History size={20} strokeWidth={2} />
+        </div>
+        <div>
+            <h2 className="text-sm font-bold text-slate-800">Máquina do Tempo</h2>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Auditoria e recálculo retroativo.</p>
+        </div>
+      </header>
 
       {!items.length ? (
-        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm italic border-2 border-dashed border-gray-50 rounded-xl m-4">
-          Aguardando itens...
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center">
+             <Filter className="w-5 h-5 text-slate-300" />
+          </div>
+          <p className="text-xs text-slate-400 max-w-[150px]">Nenhum item cadastrado para auditar.</p>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden"> {/* Container Flexível */}
+        <div className="flex-1 flex flex-col min-h-0 p-5 gap-5">
           
-          {/* Controles de Filtro */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 shrink-0">
-            <div>
-              <label className={labelClass}>Data Limite</label>
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={inputClass} />
+          {/* Inputs Row */}
+          <div className="grid grid-cols-12 gap-4 shrink-0">
+            {/* Data Input */}
+            <div className="col-span-4">
+              <label className={labelClass}>Data Corte</label>
+              <div className={inputContainer}>
+                <Calendar className="w-4 h-4 text-slate-400 ml-3 shrink-0 group-focus-within:text-indigo-500 transition-colors" />
+                <input 
+                    type="date" 
+                    value={selectedDate} 
+                    onChange={(e) => setSelectedDate(e.target.value)} 
+                    className={inputField} 
+                />
+              </div>
             </div>
-            <div className="sm:col-span-2 relative" ref={dropdownRef}>
-              <label className={labelClass}>Item</label>
-              <input 
-                type="text" 
-                value={itemSearch} 
-                onChange={(e) => { setItemSearch(e.target.value); setIsItemOpen(true) }} 
-                onClick={() => setIsItemOpen(!isItemOpen)}
-                className={inputClass}
-                placeholder="Buscar item..."
-              />
+
+            {/* Item Dropdown */}
+            <div className="col-span-8 relative" ref={dropdownRef}>
+              <label className={labelClass}>Item Selecionado</label>
+              <div 
+                className={`${inputContainer} cursor-pointer hover:bg-slate-100/50`} 
+                onClick={() => {
+                    setIsItemOpen(!isItemOpen)
+                    // Foca no input ao clicar no container
+                    const input = document.getElementById('item-search-input')
+                    input?.focus()
+                }}
+              >
+                <Search className="w-4 h-4 text-slate-400 ml-3 shrink-0 group-focus-within:text-indigo-500 transition-colors" />
+                <input 
+                  id="item-search-input"
+                  type="text" 
+                  value={itemSearch} 
+                  onChange={(e) => { setItemSearch(e.target.value); setIsItemOpen(true) }} 
+                  className={inputField} 
+                  placeholder="Buscar item..."
+                  autoComplete="off"
+                />
+                <ChevronDown className={`w-4 h-4 text-slate-400 mr-3 transition-transform duration-200 ${isItemOpen ? 'rotate-180' : ''}`} />
+              </div>
+
+              {/* Dropdown Menu */}
               {isItemOpen && (
-                <div className="absolute z-50 mt-1 w-full rounded-xl bg-white border border-gray-100 shadow-xl max-h-48 overflow-y-auto custom-scrollbar">
+                <div className="absolute z-50 top-full mt-2 left-0 right-0 rounded-xl bg-white border border-slate-100 shadow-xl max-h-56 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
                   {filteredItems.map(item => (
-                    <div 
+                    <button 
                       key={item.id} 
                       onClick={() => { setSelectedItemId(item.id); setItemSearch(item.description); setIsItemOpen(false) }} 
-                      className="px-4 py-3 text-sm text-slate-600 hover:bg-gray-50 hover:text-slate-900 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                      className="w-full text-left px-4 py-3 text-xs font-medium text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between group"
                     >
-                      {item.description}
-                    </div>
+                      <span className="truncate">{item.description}</span>
+                      {item.id === selectedItemId && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                    </button>
                   ))}
-                  {filteredItems.length === 0 && <div className="px-4 py-3 text-xs text-slate-400">Nenhum item encontrado.</div>}
+                  {filteredItems.length === 0 && (
+                      <div className="px-4 py-3 text-xs text-slate-400 text-center italic">Nenhum item encontrado.</div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Card de Resumo (Estilo Minimalista Dark) */}
+          {/* Card de Saldo */}
           {selectedItem && (
-            <div className="shrink-0 rounded-2xl bg-slate-900 text-white p-6 shadow-lg shadow-slate-200 mb-6 flex justify-between items-end relative overflow-hidden group">
-              {/* Efeito sutil de brilho no hover */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:bg-white/10 transition-all duration-700"></div>
+            <div className="shrink-0 rounded-2xl bg-slate-900 text-white p-5 shadow-xl shadow-slate-200/50 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
+              
+              <div className="relative z-10 flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse"></span>
+                        <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+                            Saldo Calculado
+                        </p>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <h3 className="text-3xl font-bold tracking-tight">{stock}</h3>
+                        <span className="text-sm text-slate-500 font-medium">unidades</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1 font-medium">
+                        Posição exata em {new Date(selectedDate).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
 
-              <div className="relative z-10">
-                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">
-                  Saldo em {new Date(selectedDate).toLocaleDateString('pt-BR')}
-                </p>
-                <h3 className="text-4xl font-bold tracking-tight">{stock}</h3>
-              </div>
-              <div className="relative z-10 text-right">
-                <div className="flex gap-4 text-xs font-medium">
-                  <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">+{entradas} Entradas</span>
-                  <span className="text-rose-400 bg-rose-400/10 px-2 py-1 rounded">-{saidas} Saídas</span>
-                </div>
+                  <div className="text-right space-y-1.5 bg-white/5 p-3 rounded-xl border border-white/5 backdrop-blur-sm">
+                    <div className="flex items-center justify-end gap-3 text-[11px]">
+                        <span className="text-slate-400 font-medium">Entradas</span>
+                        <span className="text-emerald-400 font-bold font-mono">+{entradas}</span>
+                    </div>
+                    <div className="w-full h-px bg-white/10"></div>
+                    <div className="flex items-center justify-end gap-3 text-[11px]">
+                        <span className="text-slate-400 font-medium">Saídas</span>
+                        <span className="text-rose-400 font-bold font-mono">-{saidas}</span>
+                    </div>
+                  </div>
               </div>
             </div>
           )}
 
-          {/* Timeline de Eventos */}
-          <div className="flex-1 min-h-0 flex flex-col">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 pl-1 shrink-0">Histórico</h3>
-            
-            <div className="overflow-y-auto pr-2 flex-1 space-y-4 custom-scrollbar">
-              {relevantMovs.map((m) => (
-                <div key={m.id} className="relative pl-6 border-l border-gray-100 group">
-                  {/* Ponto da linha do tempo */}
-                  <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white ${m.type === 'entrada' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+          {/* Timeline Wrapper */}
+          
+          <div className="flex-1 min-h-0 flex flex-col relative border-t border-slate-50 pt-1">
+<div className="absolute top-0 left-0 bg-slate-100 px-2 py-1 rounded-b-lg z-10">
+                 <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Extrato</h3>
+             </div>
+            <div className="overflow-y-auto pr-2 flex-1 space-y-0 pt-6 custom-scrollbar">
+               {/* Linha vertical contínua */}
+               <div className="absolute left-[11px] top-8 bottom-0 w-[2px] bg-slate-100 -z-10" />
+               
+               {relevantMovs.map((m) => (
+                <div key={m.id} className="group flex gap-3 relative pl-1 mb-4 last:mb-0">
+                  {/* Bolinha da Timeline */}
+                  <div className={`mt-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white shrink-0 z-10 transition-transform group-hover:scale-110 
+                      ${m.type === 'entrada' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]'}`} 
+                  />
                   
-                  <div className="py-1">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <span className={`text-sm font-bold ${m.type === 'entrada' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {m.type === 'entrada' ? 'Entrada' : 'Saída'} <span className="text-slate-700">de {m.quantity}</span>
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium bg-gray-50 px-2 py-0.5 rounded-full">
-                        {new Date(m.date).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    
-                    {(m.notes || m.document) ? (
-                       <p className="text-xs text-slate-500 bg-gray-50 p-3 rounded-lg border border-gray-100 leading-relaxed mt-1">
-                         {m.document && <span className="font-semibold text-slate-700 mr-2">Doc: {m.document}</span>}
-                         {m.notes}
-                       </p>
-                    ) : (
-                      <p className="text-[10px] text-slate-300 italic">Sem observações.</p>
-                    )}
+                  {/* Card do Evento */}
+                  <div className="flex-1 bg-slate-50 hover:bg-white rounded-xl p-3 border border-transparent hover:border-slate-100 hover:shadow-sm transition-all duration-200">
+                      <div className="flex justify-between items-start mb-1">
+                          <span className={`text-xs font-bold ${m.type === 'entrada' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                             {m.type === 'entrada' ? 'Entrada' : 'Saída'} <span className="text-slate-800 ml-1">{m.quantity}</span>
+                          </span>
+                          <span className="text-[10px] font-medium text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-100">
+                              {new Date(m.date).toLocaleDateString('pt-BR')}
+                          </span>
+                      </div>
+                      
+                      {(m.notes || m.document) ? (
+                          <div className="flex flex-col gap-1 mt-2">
+                             {m.document && (
+                                 <span className="text-[10px] text-slate-600 bg-slate-200/50 self-start px-1.5 py-0.5 rounded font-medium">
+                                     DOC: {m.document}
+                                 </span>
+                             )}
+                             {m.notes && <p className="text-[10px] text-slate-500 leading-relaxed">{m.notes}</p>}
+                          </div>
+                      ) : (
+                          <p className="text-[10px] text-slate-300 italic">Sem observações.</p>
+                      )}
                   </div>
                 </div>
               ))}
+              
               {!relevantMovs.length && (
-                <div className="text-center py-8">
-                  <p className="text-sm text-slate-400">Nenhuma movimentação até esta data.</p>
-                </div>
+                  <div className="h-full flex flex-col items-center justify-center text-slate-300">
+                      <p className="text-xs">Nenhum registro até esta data.</p>
+                  </div>
               )}
             </div>
           </div>
-
         </div>
       )}
     </section>
   )
 }
-
 export default HistoryPanel

@@ -14,7 +14,8 @@ export interface Movement {
   itemId: string
   type: MovementType
   quantity: number
-  document?: string      // NF, ofício, etc.
+  document?: string
+  synced?: boolean
   notes?: string
   attachmentName?: string
 }

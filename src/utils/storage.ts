@@ -46,7 +46,8 @@ export function loadMovements(): Movement[] {
       quantity: Number(m.quantity ?? 0),
       document: m.document ?? undefined,
       notes: m.notes ?? undefined,
-      attachmentName: m.attachmentName ?? undefined, // <- NÃO ESQUECER
+      attachmentName: m.attachmentName ?? undefined,
+      synced: Boolean(m.synced),
     }))
   } catch {
     return []
