@@ -25,30 +25,64 @@ function normalizeHeader(key: string): string {
     .toUpperCase()
 }
 
+// Normaliza NOME DA ABA (também tira acento)
+function normalizeSheetName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
 /**
- * Lê a planilha oficial e converte em lista de itens do almoxarifado.
- * Procura uma aba chamada "Planilha" / "Estoque" / "Almox" e,
- * se não achar, usa a primeira.
+ * Lê a planilha e converte em lista de itens do almoxarifado.
+ *
+ * PRIORIDADE DA ABA:
+ *  1) Abas cujo nome contém "inventario"  (ex.: "INVENTÁRIO COMPLETO")
+ *  2) Abas cujo nome contém "planilha", "estoque" ou "almox"
+ *  3) Se nada bater, usa a primeira aba.
+ *
+ * CAMPOS USADOS (normalizados):
+ *  - CLASSIFICACAO
+ *  - DESCRICAO
+ *  - QUANTIDADE ATUAL (preferencial)
+ *  - QUANTIDADE ANTES DO INVENTARIO (fallback)
+ *  - PRECO
+ *  - ESTOQUE ATUAL EM REAIS $  (guardado em initialStockValue)
  */
 export async function parseItemsFromFile(file: File): Promise<AlmoxItem[]> {
   const data = await file.arrayBuffer()
   const workbook = XLSX.read(data, { type: 'array' })
 
+  // Só pra debug, se quiser olhar no console:
+  console.log('[Excel] Abas encontradas:', workbook.SheetNames)
+
   const sheetName =
+    // 1) tenta achar algo com "inventario" (INVENTARIO / INVENTÁRIO)
     workbook.SheetNames.find((name) => {
-      const n = name.toLowerCase()
+      const n = normalizeSheetName(name)
+      return n.includes('inventario')
+    }) ??
+    // 2) se não tiver, cai para planilha/estoque/almox
+    workbook.SheetNames.find((name) => {
+      const n = normalizeSheetName(name)
       return (
         n.includes('planilha') ||
         n.includes('estoque') ||
         n.includes('almox')
       )
-    }) ?? workbook.SheetNames[0]
+    }) ??
+    // 3) se nada bater, usa a primeira mesmo
+    workbook.SheetNames[0]
+
+  console.log('[Excel] Usando aba para itens:', sheetName)
 
   const sheet = workbook.Sheets[sheetName]
-  const json = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' })
+  const json = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, {
+    defval: '',
+  })
 
   const items: AlmoxItem[] = json
-    .map((row) => {
+    .map((row, index) => {
       // Mapa normalizado: CABECALHO_NORMALIZADO -> valor
       const normRow: Record<string, any> = {}
       for (const rawKey of Object.keys(row)) {
@@ -56,25 +90,36 @@ export async function parseItemsFromFile(file: File): Promise<AlmoxItem[]> {
         normRow[normKey] = row[rawKey]
       }
 
-      // Agora usamos só os nomes normalizados
+      // Nomes normalizados
       const classification = normRow['CLASSIFICACAO'] ?? ''
       const description = normRow['DESCRICAO'] ?? ''
 
+      // PRIORIDADE:
+      //  1) QUANTIDADE ATUAL  (sua aba INVENTARIO COMPLETO)
+      //  2) QUANTIDADE ANTES DO INVENTARIO (planilha antiga)
       const initialQtyRaw =
-        normRow['QUANTIDADE ANTES DO INVENTARIO'] ??
         normRow['QUANTIDADE ATUAL'] ??
+        normRow['QUANTIDADE ANTES DO INVENTARIO'] ??
         0
 
       const priceRaw = normRow['PRECO'] ?? 0
+
+      // ESTOQUE ATUAL EM REAIS $ (coluna da aba INVENTARIO COMPLETO)
+      const estoqueReaisRaw =
+        normRow['ESTOQUE ATUAL EM REAIS $'] ??
+        normRow['ESTOQUE ATUAL EM REAIS'] ??
+        0
 
       const descriptionStr = String(description ?? '').trim()
       const classificationStr = String(classification ?? '').trim()
 
       // Ignora linhas sem descrição (linha em branco / total / etc.)
       if (!descriptionStr) {
+        // console.log('[Excel] Linha ignorada (sem descrição):', index + 2, row)
         return null
       }
 
+      // ID: classificação + descrição (como já está sendo usado no app)
       const id = `${classificationStr}__${descriptionStr}`
 
       return {
@@ -83,9 +128,13 @@ export async function parseItemsFromFile(file: File): Promise<AlmoxItem[]> {
         description: descriptionStr,
         initialQty: parseNumber(initialQtyRaw),
         unitPrice: parseNumber(priceRaw),
+        // valor do estoque em reais no momento da importação (opcional)
+        initialStockValue: parseNumber(estoqueReaisRaw),
       } as AlmoxItem
     })
     .filter((i): i is AlmoxItem => Boolean(i))
+
+  console.log('[Excel] Total itens importados:', items.length)
 
   return items
 }
@@ -222,7 +271,11 @@ export async function exportMovementsToExcel(
 
   headerRow.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: 'FF111827' }, size: 11 }
-    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+    cell.alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+      wrapText: true,
+    }
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -258,16 +311,17 @@ export async function exportMovementsToExcel(
       movement.document || movement.attachmentName || '',
       movement.notes ?? '',
     ])
+
     // Data
     row.getCell(1).numFmt = 'dd/mm/yyyy'
     row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }
 
-      // Qtds / saldos
-      ;[5, 6, 7, 8].forEach((col) => {
-        const cell = row.getCell(col)
-        cell.numFmt = '#,##0.##'
-        cell.alignment = { horizontal: 'right', vertical: 'middle' }
-      })
+    // Qtds / saldos
+    ;[5, 6, 7, 8].forEach((col) => {
+      const cell = row.getCell(col)
+      cell.numFmt = '#,##0.##'
+      cell.alignment = { horizontal: 'right', vertical: 'middle' }
+    })
 
     // Zebra
     if (index % 2 === 0) {

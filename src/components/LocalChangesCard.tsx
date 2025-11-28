@@ -1,5 +1,5 @@
 // src/components/LocalChangesCard.tsx
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import type { AlmoxItem, Movement } from '../types'
 import {
   ArrowDownRight,
@@ -8,20 +8,35 @@ import {
   Clock,
   Database,
   RefreshCw,
+  Search,
+  Trash2, // Ícone da lixeira
+  X
 } from 'lucide-react'
+
+// Função auxiliar baseada no que você mandou
+function normalizeText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
 
 interface Props {
   items: AlmoxItem[]
   movements: Movement[]
+  onDelete: (movementId: string) => void // Nova prop para deletar
 }
 
-const LocalChangesCard: React.FC<Props> = ({ items, movements }) => {
-  const total = movements.length
+const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
+  const [searchTerm, setSearchTerm] = useState('')
+
   const unsyncedCount = useMemo(
     () => movements.filter((m) => !m.synced).length,
     [movements],
   )
 
+  // 1. Ordena primeiro (Sincronizado/Data)
   const sortedMovements = useMemo(
     () =>
       [...movements].sort((a, b) => {
@@ -33,7 +48,20 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements }) => {
     [movements],
   )
 
-  // --- Empty State ---
+  // 2. Filtra depois baseado na busca (Nome do Item)
+  const filteredMovements = useMemo(() => {
+    if (!searchTerm) return sortedMovements
+
+    const term = normalizeText(searchTerm)
+
+    return sortedMovements.filter((m) => {
+      const item = items.find((i) => i.id === m.itemId)
+      const description = item?.description || ''
+      return normalizeText(description).includes(term)
+    })
+  }, [sortedMovements, searchTerm, items])
+
+  // --- Empty State (Sem nada na lista original) ---
   if (!movements.length) {
     return (
       <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
@@ -49,87 +77,134 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements }) => {
   }
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+    <section className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col overflow-hidden max-h-[500px]">
       {/* Header Compacto */}
-      <header className="px-5 py-4 border-b border-slate-50 bg-white z-10 flex justify-between items-center shrink-0">
-        <div>
+      <header className="px-5 py-4 border-b border-slate-50 bg-white z-10 shrink-0">
+        <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
             <h2 className="text-sm font-bold text-slate-800">Fila de Sync</h2>
           </div>
+          <span
+            className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+              unsyncedCount > 0
+                ? 'bg-amber-50 text-amber-600'
+                : 'bg-emerald-50 text-emerald-600'
+            }`}
+          >
+            {unsyncedCount > 0 ? `${unsyncedCount} PENDENTES` : 'TUDO SALVO'}
+          </span>
         </div>
-        <span
-          className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-            unsyncedCount > 0
-              ? 'bg-amber-50 text-amber-600'
-              : 'bg-emerald-50 text-emerald-600'
-          }`}
-        >
-          {unsyncedCount > 0 ? `${unsyncedCount} PENDENTES` : 'TUDO SALVO'}
-        </span>
+
+        {/* Campo de Busca Interno */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Buscar item na fila..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-8 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-all"
+          />
+          <Search size={12} className="absolute left-2.5 top-2 text-slate-400" />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2 top-1.5 p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
       </header>
 
-      {/* Lista com Scroll Independente (MENOR) */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0 max-h-40 lg:max-h-48">
-        {sortedMovements.map((m) => {
-          const item = items.find((i) => i.id === m.itemId)
-          const isPending = !m.synced
+      {/* Lista com Scroll Independente */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0">
+        {filteredMovements.length === 0 ? (
+          <div className="text-center py-6 text-xs text-slate-400 italic">
+            Nenhuma movimentação encontrada para "{searchTerm}"
+          </div>
+        ) : (
+          filteredMovements.map((m) => {
+            const item = items.find((i) => i.id === m.itemId)
+            const isPending = !m.synced
 
-          return (
-            <div
-              key={m.id}
-              className={`flex items-center gap-3 rounded-xl border p-2.5 transition-all
+            return (
+              <div
+                key={m.id}
+                className={`group flex items-center gap-3 rounded-xl border p-2.5 transition-all
               ${
                 isPending
                   ? 'bg-amber-50/40 border-amber-100'
                   : 'bg-white border-transparent hover:bg-slate-50'
               }`}
-            >
-              <div
-                className={`p-1.5 rounded-lg shrink-0 ${
-                  m.type === 'entrada'
-                    ? 'bg-emerald-100 text-emerald-600'
-                    : 'bg-rose-100 text-rose-600'
-                }`}
               >
-                {m.type === 'entrada' ? (
-                  <ArrowDownRight size={14} strokeWidth={3} />
-                ) : (
-                  <ArrowUpRight size={14} strokeWidth={3} />
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-semibold text-slate-700 truncate pr-2">
-                    {item?.description ?? 'Item desconhecido'}
-                  </p>
-                  <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap bg-slate-100 px-1.5 rounded">
-                    {m.quantity}
-                  </span>
+                {/* Ícone de Entrada/Saída */}
+                <div
+                  className={`p-1.5 rounded-lg shrink-0 ${
+                    m.type === 'entrada'
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : 'bg-rose-100 text-rose-600'
+                  }`}
+                >
+                  {m.type === 'entrada' ? (
+                    <ArrowDownRight size={14} strokeWidth={3} />
+                  ) : (
+                    <ArrowUpRight size={14} strokeWidth={3} />
+                  )}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(m.date).toLocaleDateString('pt-BR')}
-                  </span>
-                  {m.document && (
-                    <span className="text-[10px] text-slate-400 border-l border-slate-200 pl-2 truncate max-w-[80px]">
-                      {m.document}
+
+                {/* Detalhes */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-semibold text-slate-700 truncate pr-2">
+                      {item?.description ?? 'Item desconhecido'}
+                    </p>
+                    <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap bg-slate-100 px-1.5 rounded">
+                      {m.quantity}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(m.date).toLocaleDateString('pt-BR')}
+                    </span>
+                    {m.document && (
+                      <span className="text-[10px] text-slate-400 border-l border-slate-200 pl-2 truncate max-w-[80px]">
+                        {m.document}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ações e Status */}
+                <div className="shrink-0 pl-1 flex items-center gap-2">
+                  <div className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Tem certeza que deseja apagar essa movimentação de ${m.quantity} itens?`,
+                          )
+                        ) {
+                          onDelete(m.id)
+                        }
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Excluir movimentação"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  {isPending ? (
+                    <Clock size={14} className="text-amber-400" />
+                  ) : (
+                    <CheckCircle2 size={14} className="text-slate-200" />
                   )}
                 </div>
               </div>
-
-              <div className="shrink-0 pl-1">
-                {isPending ? (
-                  <Clock size={14} className="text-amber-400" />
-                ) : (
-                  <CheckCircle2 size={14} className="text-slate-200" />
-                )}
-              </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
 
       {/* Footer Minimalista */}

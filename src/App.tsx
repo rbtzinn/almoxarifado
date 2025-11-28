@@ -50,6 +50,18 @@ const App: React.FC = () => {
     setShowClearDialog(false)
   }
 
+  const handleDeleteMovement = (movementId: string) => {
+    // 1. Remove do estado atual
+    const updatedMovements = movements.filter(m => m.id !== movementId);
+    setMovements(updatedMovements);
+
+    // 2. Salva no LocalStorage
+    localStorage.setItem('almox_movements', JSON.stringify(updatedMovements));
+
+    // O somatório da Sidebar será atualizado automaticamente 
+    // pois ele depende do array 'movements' que acabou de mudar.
+  };
+
   const handleSync = async () => {
     if (!items.length) return alert('Sem dados para sincronizar.')
     setSyncing(true)
@@ -102,6 +114,8 @@ const App: React.FC = () => {
           onSync={handleSync}
           isSyncing={syncing}
           hasData={items.length > 0}
+          items={items}
+          movements={movements}
         />
       </aside>
 
@@ -141,7 +155,11 @@ const App: React.FC = () => {
 
           {/* Fila de Sync */}
           <div className="w-full pt-2">
-            <LocalChangesCard items={items} movements={movements} />
+            <LocalChangesCard
+              items={items}
+              movements={movements}
+              onDelete={handleDeleteMovement} // <--- Passar a função aqui
+            />
           </div>
 
           {/* Tabela de Itens */}
