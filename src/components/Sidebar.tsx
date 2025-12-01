@@ -203,6 +203,43 @@ const Sidebar: React.FC<SidebarProps> = ({
           <input type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
         </label>
 
+        <nav className="flex-1 px-4 space-y-1 flex flex-col pb-4 mt-4">
+        {hasData ? (
+          <>
+            <button onClick={onSync} disabled={isSyncing} className={btnPrimary}>
+              {isSyncing ? (
+                <RefreshCw size={18} className="animate-spin text-indigo-600 dark:text-indigo-400" />
+              ) : (
+                <RefreshCw
+                  size={18}
+                  className="text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+                />
+              )}
+              Sync Planilha
+            </button>
+
+            <button onClick={onExport} className={btnPrimary}>
+              <Download
+                size={18}
+                className="text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+              />
+              Baixar Histórico
+            </button>
+
+            <div className="my-4 border-t border-slate-100 dark:border-slate-800 mx-2" />
+
+            <button onClick={onClear} className={btnDanger}>
+              <Trash2 size={18} className="opacity-70 group-hover:opacity-100" />
+              Limpar Tudo
+            </button>
+          </>
+        ) : (
+          <div className="px-4 py-8 text-center opacity-50">
+            <p className="text-xs text-slate-400 dark:text-slate-600">Importe uma planilha para habilitar as ações.</p>
+          </div>
+        )}
+      </nav>
+
         {hasData && (
           <>
             <div className="mt-3 flex items-center justify-between px-2 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
@@ -267,44 +304,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </>
         )}
       </div>
-
-      {/* Menu Navigation - SEM OVERFLOW INTERNO */}
-      <nav className="flex-1 px-4 space-y-1 flex flex-col pb-4">
-        {hasData ? (
-          <>
-            <button onClick={onSync} disabled={isSyncing} className={btnPrimary}>
-              {isSyncing ? (
-                <RefreshCw size={18} className="animate-spin text-indigo-600 dark:text-indigo-400" />
-              ) : (
-                <RefreshCw
-                  size={18}
-                  className="text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
-                />
-              )}
-              Sync Planilha
-            </button>
-
-            <button onClick={onExport} className={btnPrimary}>
-              <Download
-                size={18}
-                className="text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
-              />
-              Baixar Histórico
-            </button>
-
-            <div className="my-4 border-t border-slate-100 dark:border-slate-800 mx-2" />
-
-            <button onClick={onClear} className={btnDanger}>
-              <Trash2 size={18} className="opacity-70 group-hover:opacity-100" />
-              Limpar Tudo
-            </button>
-          </>
-        ) : (
-          <div className="px-4 py-8 text-center opacity-50">
-            <p className="text-xs text-slate-400 dark:text-slate-600">Importe uma planilha para habilitar as ações.</p>
-          </div>
-        )}
-      </nav>
     </div>
   )
 }
