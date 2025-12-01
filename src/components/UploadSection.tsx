@@ -48,17 +48,17 @@ const UploadSection: React.FC<Props> = ({
     <>
       <section className="relative group overflow-hidden rounded-3xl border transition-all duration-300
         bg-white border-slate-200 shadow-xl shadow-slate-200/50 
-        dark:bg-gray-900/40 dark:border-white/10 dark:backdrop-blur-xl dark:shadow-2xl dark:hover:shadow-cyan-500/10"
+        dark:bg-[#0a0f1d] dark:border-slate-800 dark:shadow-none"
       >
-        {/* Barra de progresso visual no topo */}
-        <div className={`absolute top-0 left-0 h-1 transition-all duration-1000 ${hasItems ? 'w-full' : 'w-0'} bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-cyan-400 dark:to-purple-500`} />
+        {/* Barra de progresso visual - Gradiente PE */}
+        <div className={`absolute top-0 left-0 h-1.5 transition-all duration-1000 ${hasItems ? 'w-full' : 'w-0'} bg-gradient-to-r from-[#0F3B82] via-[#4800BC] to-[#E30613]`} />
 
         <div className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-white dark:to-gray-400">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
               Central de Dados
             </h2>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1 font-light">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-light">
               Importe sua planilha para energizar o sistema.
             </p>
           </div>
@@ -67,12 +67,12 @@ const UploadSection: React.FC<Props> = ({
             {/* Badge */}
             <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 transition-all ${
               hasItems
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300 dark:shadow-[0_0_15px_rgba(34,211,238,0.2)]'
+                ? 'bg-blue-50 border-[#0F3B82]/20 text-[#0F3B82] dark:bg-[#0F3B82]/20 dark:border-[#0F3B82]/30 dark:text-[#00C3E3]'
                 : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/10 dark:text-gray-500'
               }`}>
               <span className="relative flex h-2 w-2">
-                {hasItems && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 dark:bg-cyan-400 opacity-75"></span>}
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${hasItems ? 'bg-indigo-500 dark:bg-cyan-500' : 'bg-slate-400 dark:bg-gray-600'}`}></span>
+                {hasItems && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#89D700] opacity-75"></span>}
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${hasItems ? 'bg-[#89D700]' : 'bg-slate-400 dark:bg-gray-600'}`}></span>
               </span>
               <span className="text-xs font-bold tracking-wider uppercase">{currentItemCount} Itens Ativos</span>
             </div>
@@ -80,7 +80,7 @@ const UploadSection: React.FC<Props> = ({
             {hasItems && onClearItems && (
               <button
                 onClick={() => setShowConfirm(true)}
-                className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white dark:hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all duration-300"
+                className="p-2 rounded-xl bg-red-50 border border-red-200 text-[#E30613] hover:bg-[#E30613] hover:text-white dark:bg-[#E30613]/10 dark:border-[#E30613]/20 dark:text-[#E30613] dark:hover:bg-[#E30613] dark:hover:text-white transition-all duration-300"
                 title="Descartar dados"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -96,22 +96,19 @@ const UploadSection: React.FC<Props> = ({
               relative flex flex-col items-center justify-center h-40 rounded-2xl border-2 border-dashed transition-all duration-500 cursor-pointer overflow-hidden
               ${disabled
                 ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800/50'
-                : 'border-slate-300 hover:border-indigo-400 hover:bg-indigo-50 dark:border-white/20 dark:hover:border-cyan-400/50 dark:hover:bg-cyan-500/5 group/drop'
+                : 'border-slate-300 hover:border-[#0F3B82] hover:bg-blue-50/50 dark:border-white/20 dark:hover:border-[#00C3E3] dark:hover:bg-[#00C3E3]/5 group/drop'
               }
             `}
           >
-            {/* Efeito de Scan no Hover (Apenas Dark Mode para não poluir o Light) */}
-            {!disabled && <div className="hidden dark:block absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/5 to-transparent translate-y-[-100%] group-hover/drop:translate-y-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />}
-
             <div className="z-10 flex flex-col items-center">
               {loading ? (
                 <div className="relative w-12 h-12">
-                  <div className="absolute inset-0 border-4 border-t-indigo-500 dark:border-t-cyan-500 border-r-transparent border-b-purple-500 border-l-transparent rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 border-4 border-t-[#0F3B82] dark:border-t-[#00C3E3] border-r-transparent border-b-[#4800BC] border-l-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
                 <div className={`p-4 rounded-full transition-all duration-300 ${hasItems 
-                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
-                    : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-gray-400 group-hover/drop:scale-110 group-hover/drop:text-indigo-500 dark:group-hover/drop:text-cyan-300'
+                    ? 'bg-[#89D700]/20 text-[#6da800] dark:text-[#89D700]' 
+                    : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-gray-400 group-hover/drop:scale-110 group-hover/drop:text-[#0F3B82] dark:group-hover/drop:text-[#00C3E3]'
                   }`}>
                   {hasItems ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 011.04-.207z" clipRule="evenodd" /></svg>
@@ -122,10 +119,10 @@ const UploadSection: React.FC<Props> = ({
               )}
 
               <div className="mt-4 text-center">
-                <span className={`text-sm font-medium transition-colors ${error ? 'text-rose-500' : 'text-slate-500 dark:text-gray-300'}`}>
+                <span className={`text-sm font-medium transition-colors ${error ? 'text-[#E30613]' : 'text-slate-500 dark:text-gray-300'}`}>
                   {error || (loading ? 'Processando dados...' : hasItems ? 'Arquivo carregado com sucesso' : 'Clique ou arraste sua planilha .xlsx')}
                 </span>
-                {fileName && !error && <p className="text-xs text-indigo-500 dark:text-cyan-400 mt-1 font-mono tracking-tight">{fileName}</p>}
+                {fileName && !error && <p className="text-xs text-[#0F3B82] dark:text-[#00C3E3] mt-1 font-mono tracking-tight">{fileName}</p>}
               </div>
             </div>
             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} disabled={disabled} />

@@ -2,9 +2,16 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { ToastProvider } from './contexts/ToastContext'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+ <React.StrictMode>
+  <ThemeProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+  </ThemeProvider>
+</React.StrictMode>
+
 )

@@ -83,15 +83,14 @@ export async function syncMovementsToGoogleSheet(
   // 1. Identificar o que NÃO foi sincronizado
   const unsyncedMovements = movements.filter((m) => !m.synced)
 
+  // Nenhum movimento novo: quem chama decide como avisar (toast)
   if (unsyncedMovements.length === 0) {
-    alert('Tudo já está sincronizado! Nenhuma novidade para enviar.')
     return null
   }
 
   const webAppUrl = import.meta.env.VITE_SHEETS_WEBAPP_URL
   if (!webAppUrl) {
-    alert('URL não configurada.')
-    return null
+    throw new Error('URL da integração com o Google Sheets não está configurada.')
   }
 
   // 2. Gerar TODAS as linhas para cálculo correto de saldo
@@ -107,44 +106,44 @@ export async function syncMovementsToGoogleSheet(
       return rest
     })
 
+  let response: Response
+
   try {
-    const response = await fetch(webAppUrl, {
+    response = await fetch(webAppUrl, {
       method: 'POST',
       body: JSON.stringify({ rows: rowsToSend, mode: 'APPEND' }),
     })
-
-    if (!response.ok) {
-      alert('Falha ao conectar com o Google Sheets.')
-      return null
-    }
-
-    const text = await response.text()
-    let data: any = null
-    try {
-      data = JSON.parse(text)
-    } catch {
-      // se não for JSON, data fica null e cai no erro abaixo
-    }
-
-    if (data && data.success) {
-      // 4. Sucesso: marcamos apenas os enviados como synced: true
-      const updatedMovements = movements.map((m) => {
-        if (unsyncedIds.has(m.id)) {
-          return { ...m, synced: true }
-        }
-        return m
-      })
-
-      alert(`Sucesso! ${rowsToSend.length} novos registros enviados.`)
-      return updatedMovements
-    } else {
-      console.error('Erro Google:', data ?? text)
-      alert('Erro no script do Google.')
-      return null
-    }
   } catch (err) {
     console.error(err)
-    alert('Erro de conexão.')
-    return null
+    throw new Error('Erro de conexão com o serviço do Google Sheets.')
   }
+
+  if (!response.ok) {
+    throw new Error('Não foi possível conectar com o Google Sheets.')
+  }
+
+  const text = await response.text()
+  let data: any = null
+  try {
+    data = JSON.parse(text)
+  } catch {
+    // resposta não é JSON válido, deixa data como null
+  }
+
+  if (!data || !data.success) {
+    console.error('Resposta inesperada do Google Apps Script:', data ?? text)
+    throw new Error(
+      'Erro no script do Google Sheets. Verifique o Apps Script ou o log da planilha.'
+    )
+  }
+
+  // 4. Sucesso: marcamos apenas os enviados como synced: true
+  const updatedMovements = movements.map((m) => {
+    if (unsyncedIds.has(m.id)) {
+      return { ...m, synced: true }
+    }
+    return m
+  })
+
+  return updatedMovements
 }

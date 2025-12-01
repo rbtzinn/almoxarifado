@@ -148,8 +148,7 @@ export async function exportMovementsToExcel(
   movements: Movement[],
 ): Promise<void> {
   if (!movements.length) {
-    alert('Não há movimentações para exportar.')
-    return
+     return
   }
 
   const itemById = new Map(items.map((i) => [i.id, i]))

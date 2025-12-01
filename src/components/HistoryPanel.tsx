@@ -46,17 +46,17 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
     return { stock: stockValue, entradas: entradasTotal, saidas: saidasTotal, relevantMovs: relevant }
   }, [selectedItem, movements, selectedDate, items])
 
-  // --- Estilos Atualizados ---
-  const inputContainer = "group flex items-center w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all h-11 cursor-text overflow-hidden"
+  // --- Estilos Atualizados (Azul Marinho Base) ---
+  const inputContainer = "group flex items-center w-full rounded-xl bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:border-[#0F3B82] dark:focus-within:border-[#00C3E3] focus-within:ring-4 focus-within:ring-[#0F3B82]/10 transition-all h-11 cursor-text overflow-hidden"
   const inputField = "w-full h-full bg-transparent border-none text-xs font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:ring-0 px-3 outline-none"
   const labelClass = "text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 ml-1 block"
 
   return (
-    <section className="bg-white dark:bg-slate-950 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-full max-h-[520px] overflow-hidden transition-colors duration-300">
+    <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col h-full max-h-[520px] overflow-hidden transition-colors duration-300">
       
       {/* Header */}
-      <header className="p-5 border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-950 shrink-0 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+      <header className="p-5 border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-[#0a0f1d] shrink-0 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-[#0F3B82]/20 flex items-center justify-center shrink-0 text-[#0F3B82] dark:text-[#00C3E3]">
             <History size={20} strokeWidth={2} />
         </div>
         <div>
@@ -80,7 +80,7 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
             <div className="col-span-4">
               <label className={labelClass}>Data Corte</label>
               <div className={inputContainer}>
-                <Calendar className="w-4 h-4 text-slate-400 ml-3 shrink-0 group-focus-within:text-indigo-500 transition-colors" />
+                <Calendar className="w-4 h-4 text-slate-400 ml-3 shrink-0 group-focus-within:text-[#0F3B82] transition-colors" />
                 <input 
                     type="date" 
                     value={selectedDate} 
@@ -100,7 +100,7 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
                     input?.focus()
                 }}
               >
-                <Search className="w-4 h-4 text-slate-400 ml-3 shrink-0 group-focus-within:text-indigo-500 transition-colors" />
+                <Search className="w-4 h-4 text-slate-400 ml-3 shrink-0 group-focus-within:text-[#0F3B82] transition-colors" />
                 <input 
                   id="item-search-input"
                   type="text" 
@@ -114,15 +114,15 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
               </div>
 
               {isItemOpen && (
-                <div className="absolute z-50 top-full mt-2 left-0 right-0 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-xl max-h-56 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute z-50 top-full mt-2 left-0 right-0 rounded-xl bg-white dark:bg-[#1f2937] border border-slate-100 dark:border-slate-700 shadow-xl max-h-56 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
                   {filteredItems.map(item => (
                     <button 
                       key={item.id} 
                       onClick={() => { setSelectedItemId(item.id); setItemSearch(item.description); setIsItemOpen(false) }} 
-                      className="w-full text-left px-4 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-700 dark:hover:text-white border-b border-slate-50 dark:border-slate-700 last:border-0 transition-colors flex items-center justify-between group"
+                      className="w-full text-left px-4 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-[#0F3B82]/20 hover:text-[#0F3B82] dark:hover:text-white border-b border-slate-50 dark:border-slate-700 last:border-0 transition-colors flex items-center justify-between group"
                     >
                       <span className="truncate">{item.description}</span>
-                      {item.id === selectedItemId && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                      {item.id === selectedItemId && <div className="w-1.5 h-1.5 rounded-full bg-[#0F3B82] dark:bg-[#00C3E3]" />}
                     </button>
                   ))}
                   {filteredItems.length === 0 && (
@@ -135,35 +135,35 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
 
           {/* Card de Saldo */}
           {selectedItem && (
-            <div className="shrink-0 rounded-2xl bg-slate-900 dark:bg-indigo-950 text-white p-5 shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/30 transition-colors duration-500"></div>
+            <div className="shrink-0 rounded-2xl bg-[#0F3B82] dark:bg-[#0F3B82]/40 text-white p-5 shadow-xl shadow-[#0F3B82]/20 dark:shadow-none relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#4800BC]/50 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[#4800BC]/60 transition-colors duration-500"></div>
               
               <div className="relative z-10 flex justify-between items-center">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse"></span>
-                        <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#89D700] shadow-[0_0_8px_rgba(137,215,0,0.6)] animate-pulse"></span>
+                        <p className="text-blue-100 text-[10px] uppercase font-bold tracking-widest">
                             Saldo Calculado
                         </p>
                     </div>
                     <div className="flex items-baseline gap-2">
                         <h3 className="text-3xl font-bold tracking-tight">{stock}</h3>
-                        <span className="text-sm text-slate-500 font-medium">unidades</span>
+                        <span className="text-sm text-blue-200 font-medium">unidades</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1 font-medium">
+                    <p className="text-[10px] text-blue-200 mt-1 font-medium">
                         Posição exata em {new Date(selectedDate).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
 
-                  <div className="text-right space-y-1.5 bg-white/5 p-3 rounded-xl border border-white/5 backdrop-blur-sm">
+                  <div className="text-right space-y-1.5 bg-white/10 p-3 rounded-xl border border-white/5 backdrop-blur-sm">
                     <div className="flex items-center justify-end gap-3 text-[11px]">
-                        <span className="text-slate-400 font-medium">Entradas</span>
-                        <span className="text-emerald-400 font-bold font-mono">+{entradas}</span>
+                        <span className="text-blue-200 font-medium">Entradas</span>
+                        <span className="text-[#89D700] font-bold font-mono">+{entradas}</span>
                     </div>
                     <div className="w-full h-px bg-white/10"></div>
                     <div className="flex items-center justify-end gap-3 text-[11px]">
-                        <span className="text-slate-400 font-medium">Saídas</span>
-                        <span className="text-rose-400 font-bold font-mono">-{saidas}</span>
+                        <span className="text-blue-200 font-medium">Saídas</span>
+                        <span className="text-[#E30613] font-bold font-mono">-{saidas}</span>
                     </div>
                   </div>
               </div>
@@ -182,17 +182,17 @@ const HistoryPanel: React.FC<Props> = ({ items, movements }) => {
                {relevantMovs.map((m) => (
                 <div key={m.id} className="group flex gap-3 relative pl-1 mb-4 last:mb-0">
                   {/* Bolinha */}
-                  <div className={`mt-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-slate-950 shrink-0 z-10 transition-transform group-hover:scale-110 
-                      ${m.type === 'entrada' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]'}`} 
+                  <div className={`mt-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white dark:ring-[#0a0f1d] shrink-0 z-10 transition-transform group-hover:scale-110 
+                      ${m.type === 'entrada' ? 'bg-[#89D700]' : 'bg-[#E30613]'}`} 
                   />
                   
                   {/* Card Evento */}
-                  <div className="flex-1 bg-slate-50 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-800 rounded-xl p-3 border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-200">
+                  <div className="flex-1 bg-slate-50 dark:bg-[#111827] hover:bg-white dark:hover:bg-[#1f2937] rounded-xl p-3 border border-transparent hover:border-slate-100 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-200">
                       <div className="flex justify-between items-start mb-1">
-                          <span className={`text-xs font-bold ${m.type === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                          <span className={`text-xs font-bold ${m.type === 'entrada' ? 'text-[#6da800] dark:text-[#89D700]' : 'text-[#c40510] dark:text-[#E30613]'}`}>
                              {m.type === 'entrada' ? 'Entrada' : 'Saída'} <span className="text-slate-800 dark:text-slate-200 ml-1">{m.quantity}</span>
                           </span>
-                          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
+                          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 bg-white dark:bg-[#0a0f1d] px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
                               {new Date(m.date).toLocaleDateString('pt-BR')}
                           </span>
                       </div>

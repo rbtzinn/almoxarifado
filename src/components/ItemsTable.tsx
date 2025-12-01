@@ -58,9 +58,9 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
   }, [items, search])
 
   return (
-    <section className="bg-white dark:bg-slate-950 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 h-full flex flex-col overflow-hidden mb-10 transition-colors duration-300">
+    <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 h-full flex flex-col overflow-hidden mb-10 transition-colors duration-300">
       {/* Header Fixo */}
-      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-slate-950 shrink-0">
+      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-[#0a0f1d] shrink-0">
         <div>
           <h2 className="text-sm font-bold text-slate-800 dark:text-white">Visão Geral do Estoque</h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
@@ -69,21 +69,21 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
         </div>
 
         <div className="relative group">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 group-focus-within:text-indigo-500 transition-colors" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 group-focus-within:text-[#0F3B82] transition-colors" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filtrar por nome..."
-            className="pl-10 pr-4 py-2 w-64 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-medium transition-all outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400"
+            className="pl-10 pr-4 py-2 w-64 rounded-xl bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-[#0a0f1d] focus:border-[#0F3B82] dark:focus:border-[#00C3E3] focus:ring-4 focus:ring-[#0F3B82]/10 text-xs font-medium transition-all outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400"
           />
         </div>
       </div>
 
       {/* Tabela Scrollável */}
-      <div className="flex-1 overflow-auto bg-white dark:bg-slate-950 custom-scrollbar max-h-[420px] lg:max-h-[520px] 2xl:max-h-[620px]">
+      <div className="flex-1 overflow-auto bg-white dark:bg-[#0a0f1d] custom-scrollbar max-h-[420px] lg:max-h-[520px] 2xl:max-h-[620px]">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-20 shadow-sm border-b border-slate-100 dark:border-slate-800">
+          <thead className="bg-slate-50 dark:bg-[#111827] sticky top-0 z-20 shadow-sm border-b border-slate-100 dark:border-slate-800">
             <tr>
               <th
                 className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider group cursor-help"
@@ -124,19 +124,19 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
                 const totalValue = currentStock * item.unitPrice
 
                 // --- Lógica de Estilo da Linha (Dark Compatible) ---
-                let rowClass = 'group bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all'
+                let rowClass = 'group bg-white dark:bg-[#0a0f1d] hover:bg-slate-50 dark:hover:bg-[#111827] transition-all'
                 let badgeClass = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                 let StatusIcon = CheckCircle2
 
                 if (currentStock <= 0) {
                   // Vermelho
-                  rowClass = 'group bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 transition-all'
-                  badgeClass = 'bg-rose-500 text-white dark:bg-rose-600'
+                  rowClass = 'group bg-red-50 hover:bg-red-100 dark:bg-[#E30613]/10 dark:hover:bg-[#E30613]/20 transition-all'
+                  badgeClass = 'bg-[#E30613] text-white dark:bg-[#E30613]'
                   StatusIcon = XCircle
                 } else if (currentStock < 10) {
                   // Amarelo
-                  rowClass = 'group bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 transition-all'
-                  badgeClass = 'bg-amber-400 text-amber-900 dark:bg-amber-500 dark:text-amber-950'
+                  rowClass = 'group bg-amber-50 hover:bg-amber-100 dark:bg-[#FFCD00]/10 dark:hover:bg-[#FFCD00]/20 transition-all'
+                  badgeClass = 'bg-[#FFCD00] text-amber-900 dark:bg-[#FFCD00] dark:text-amber-950'
                   StatusIcon = AlertTriangle
                 }
 

@@ -57,7 +57,7 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
 
   if (!movements.length) {
     return (
-      <section className="bg-white dark:bg-slate-950 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center transition-colors duration-300">
+      <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center transition-colors duration-300">
         <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-3">
           <Database className="w-5 h-5 text-slate-300 dark:text-slate-500" />
         </div>
@@ -70,19 +70,19 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
   }
 
   return (
-    <section className="bg-white dark:bg-slate-950 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden max-h-[500px] transition-colors duration-300">
+    <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden max-h-[500px] transition-colors duration-300">
       {/* Header */}
-      <header className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-950 z-10 shrink-0">
+      <header className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-[#0a0f1d] z-10 shrink-0">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#0F3B82] animate-pulse" />
             <h2 className="text-sm font-bold text-slate-800 dark:text-white">Fila de Sync</h2>
           </div>
           <span
             className={`text-[10px] font-bold px-2 py-1 rounded-full ${
               unsyncedCount > 0
-                ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-[#FFCD00]/20 text-amber-700 dark:text-[#FFCD00]'
+                : 'bg-[#89D700]/20 text-[#4a7500] dark:text-[#89D700]'
             }`}
           >
             {unsyncedCount > 0 ? `${unsyncedCount} PENDENTES` : 'TUDO SALVO'}
@@ -96,7 +96,7 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
             placeholder="Buscar item na fila..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-950 transition-all placeholder-slate-400"
+            className="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0F3B82] dark:focus:border-[#00C3E3] focus:bg-white dark:focus:bg-[#0a0f1d] transition-all placeholder-slate-400"
           />
           <Search size={12} className="absolute left-2.5 top-2 text-slate-400" />
           {searchTerm && (
@@ -127,16 +127,16 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
                 className={`group flex items-center gap-3 rounded-xl border p-2.5 transition-all
               ${
                 isPending
-                  ? 'bg-amber-50/40 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
-                  : 'bg-white dark:bg-slate-900 border-transparent hover:bg-slate-50 dark:hover:bg-slate-800'
+                  ? 'bg-amber-50/40 dark:bg-[#FFCD00]/5 border-amber-100 dark:border-[#FFCD00]/20'
+                  : 'bg-white dark:bg-[#111827] border-transparent hover:bg-slate-50 dark:hover:bg-[#1f2937]'
               }`}
               >
                 {/* Ícone */}
                 <div
                   className={`p-1.5 rounded-lg shrink-0 ${
                     m.type === 'entrada'
-                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400'
+                      ? 'bg-[#89D700]/20 text-[#6da800] dark:text-[#89D700]'
+                      : 'bg-[#E30613]/10 text-[#E30613] dark:text-[#E30613]'
                   }`}
                 >
                   {m.type === 'entrada' ? (
@@ -175,14 +175,14 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
                       onClick={() => {
                         if (window.confirm('Tem certeza?')) onDelete(m.id)
                       }}
-                      className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-[#E30613] dark:hover:text-[#E30613] hover:bg-red-50 dark:hover:bg-[#E30613]/20 rounded-lg transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
                   </div>
 
                   {isPending ? (
-                    <Clock size={14} className="text-amber-400" />
+                    <Clock size={14} className="text-[#FFCD00]" />
                   ) : (
                     <CheckCircle2 size={14} className="text-slate-200 dark:text-slate-700" />
                   )}
@@ -194,7 +194,7 @@ const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0">
+      <div className="px-3 py-2 bg-slate-50 dark:bg-[#111827] border-t border-slate-100 dark:border-slate-800 shrink-0">
         <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5 uppercase tracking-wide font-medium">
           <RefreshCw size={9} />
           Sincronização Manual
