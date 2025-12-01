@@ -158,7 +158,6 @@ const AppContent: React.FC = () => {
     // Removi 'flex' daqui para controlar manualmente a estrutura vertical
     <div className="min-h-screen bg-slate-50 dark:bg-[#050912] text-slate-600 dark:text-slate-300 font-sans transition-colors duration-300">
       {/* --- BARRA SUPERIOR DE IDENTIDADE (Cores de PE) --- */}
-      {/* h-3 (12px) para dar destaque */}
       <div className="fixed top-0 left-0 right-0 h-1 z-[100] flex shadow-md">
         <div className="h-full w-1/4 bg-[#0F3B82]"></div>
         <div className="h-full w-1/4 bg-[#FFCD00]"></div>
@@ -169,7 +168,6 @@ const AppContent: React.FC = () => {
       {/* Wrapper Flexível que compensa a barra fixa (pt-3) */}
       <div className="flex pt-0 min-h-screen">
         {/* --- MENU MOBILE (Header) --- */}
-        {/* Ajustado top-3 para não ficar debaixo da barra colorida */}
         <div className="lg:hidden fixed top-3 left-0 right-0 h-16 bg-white dark:bg-[#0F3B82] border-b border-slate-200 dark:border-blue-900 flex items-center justify-between px-4 z-40 shadow-sm transition-colors">
           <div className="font-bold text-[#0F3B82] dark:text-white flex items-center gap-2 text-lg">
             <div className="w-8 h-8 bg-[#0F3B82] dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-[#0F3B82] shadow-lg">
@@ -211,59 +209,59 @@ const AppContent: React.FC = () => {
         </aside>
 
         {/* --- CONTEÚDO PRINCIPAL --- */}
-        <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-0 overflow-x-hidden w-full max-w-[1920px] mx-auto">
+        <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8 overflow-x-hidden w-full max-w-[1920px] mx-auto">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header Area (Desktop) */}
             <div className="hidden lg:flex items-center justify-between">
-              {/* Esquerda: logo Controle Interno */}
-              <div className="flex items-center gap-6">
-                <img
-                  src={controleLogo}
-                  alt="Logo Controle Interno EMPETUR"
-                  className="h-auto w-80 object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              </div>
+              {/* Logos à esquerda */}
+              <div className="flex items-center gap-10">
+                {/* CONTROLE INTERNO */}
+                <div className="h-[80px] w-[300px] flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    src={controleLogo}
+                    alt="Logo Controle Interno EMPETUR"
+                    className="h-[130px] w-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </div>
 
-              {/* Centro/Direita: logo EMPETUR */}
-              <div className="flex items-center gap-6">
-                <img
-                  src={empeturLogo}
-                  alt="Logo EMPETUR"
-                  className="h-auto w-80 object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
+                {/* EMPETUR + GOV PE */}
+                <div className="h-[64px] w-[320px] flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    src={empeturLogo}
+                    alt="Logo EMPETUR"
+                    className="h-[130px] w-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Área Direita: Status + Data */}
               <div className="flex items-center gap-3">
                 <div
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all duration-300 ${
-                    isOnline
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all duration-300 ${isOnline
                       ? 'bg-white dark:bg-[#0F3B82]/20 border-slate-200 dark:border-[#0F3B82]/40'
                       : 'bg-[#E30613]/10 dark:bg-[#E30613]/20 border-[#E30613]/20 dark:border-[#E30613]/40'
-                  }`}
+                    }`}
                 >
                   <span className="relative flex h-2 w-2">
                     {isOnline && (
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#89D700] opacity-75"></span>
                     )}
                     <span
-                      className={`relative inline-flex rounded-full h-2 w-2 ${
-                        isOnline ? 'bg-[#89D700]' : 'bg-[#E30613]'
-                      }`}
+                      className={`relative inline-flex rounded-full h-2 w-2 ${isOnline ? 'bg-[#89D700]' : 'bg-[#E30613]'
+                        }`}
                     ></span>
                   </span>
                   <span
-                    className={`text-xs font-bold ${
-                      isOnline
+                    className={`text-xs font-bold ${isOnline
                         ? 'text-slate-600 dark:text-blue-100'
                         : 'text-[#E30613] dark:text-red-300'
-                    }`}
+                      }`}
                   >
                     {isOnline ? 'Online' : 'Offline'}
                   </span>
