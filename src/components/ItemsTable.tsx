@@ -1,4 +1,3 @@
-// src/components/ItemsTable.tsx
 import React, { useMemo, useState } from 'react'
 import type { AlmoxItem, Movement } from '../types'
 import { getCurrentStock } from '../utils/stock'
@@ -10,7 +9,6 @@ import {
   ArrowUpDown,
 } from 'lucide-react'
 
-// Normaliza texto: tira acento, coloca em minúsculo, tira espaços extras
 function normalizeText(text: string): string {
   return text
     .normalize('NFD')
@@ -29,74 +27,43 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
 
   const filtered = useMemo(() => {
     const termNorm = normalizeText(search)
-
-    // Sempre monto uma lista com descrição normalizada
     const withNorm = items.map((item) => ({
       item,
       descNorm: normalizeText(item.description),
     }))
 
-    // Sem termo → tudo ordenado alfabeticamente
     if (!termNorm) {
       return withNorm
         .sort((a, b) =>
-          a.descNorm.localeCompare(b.descNorm, 'pt-BR', {
-            sensitivity: 'base',
-          }),
+          a.descNorm.localeCompare(b.descNorm, 'pt-BR', { sensitivity: 'base' }),
         )
         .map(({ item }) => item)
     }
 
-    // Com termo → calculo posição da ocorrência na descrição
     const withMeta = withNorm
       .map(({ item, descNorm }) => {
         const index = descNorm.indexOf(termNorm)
-        if (index === -1) return null // não contém o termo
-
-        return {
-          item,
-          descNorm,
-          index,          // posição onde o termo aparece
-          isPrefix: index === 0, // começa com o termo?
-        }
+        if (index === -1) return null 
+        return { item, descNorm, index, isPrefix: index === 0 }
       })
-      .filter(
-        (
-          x,
-        ): x is {
-          item: AlmoxItem
-          descNorm: string
-          index: number
-          isPrefix: boolean
-        } => x !== null,
-      )
+      .filter((x): x is { item: AlmoxItem; descNorm: string; index: number; isPrefix: boolean } => x !== null)
 
-    // Ranking:
-    // 1) quem COMEÇA com o termo (index 0) vem primeiro
-    // 2) depois, quem tem o termo mais à esquerda
-    // 3) empatou? ordena alfabético pela descrição
     withMeta.sort((a, b) => {
-      if (a.isPrefix !== b.isPrefix) {
-        return a.isPrefix ? -1 : 1
-      }
-      if (a.index !== b.index) {
-        return a.index - b.index
-      }
-      return a.descNorm.localeCompare(b.descNorm, 'pt-BR', {
-        sensitivity: 'base',
-      })
+      if (a.isPrefix !== b.isPrefix) return a.isPrefix ? -1 : 1
+      if (a.index !== b.index) return a.index - b.index
+      return a.descNorm.localeCompare(b.descNorm, 'pt-BR', { sensitivity: 'base' })
     })
 
     return withMeta.map(({ item }) => item)
   }, [items, search])
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col overflow-hidden mb-10">
+    <section className="bg-white dark:bg-slate-950 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 h-full flex flex-col overflow-hidden mb-10 transition-colors duration-300">
       {/* Header Fixo */}
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4 bg-white shrink-0">
+      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-slate-950 shrink-0">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">Visão Geral do Estoque</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h2 className="text-sm font-bold text-slate-800 dark:text-white">Visão Geral do Estoque</h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
             Saldo atualizado em tempo real.
           </p>
         </div>
@@ -108,44 +75,44 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filtrar por nome..."
-            className="pl-10 pr-4 py-2 w-64 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-medium transition-all outline-none"
+            className="pl-10 pr-4 py-2 w-64 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-medium transition-all outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400"
           />
         </div>
       </div>
 
-      {/* Tabela Scrollável (MAIOR, mas ainda com overflow) */}
-      <div className="flex-1 overflow-auto bg-white custom-scrollbar max-h-[420px] lg:max-h-[520px] 2xl:max-h-[620px]">
+      {/* Tabela Scrollável */}
+      <div className="flex-1 overflow-auto bg-white dark:bg-slate-950 custom-scrollbar max-h-[420px] lg:max-h-[520px] 2xl:max-h-[620px]">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 sticky top-0 z-20 shadow-sm">
+          <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 z-20 shadow-sm border-b border-slate-100 dark:border-slate-800">
             <tr>
               <th
-                className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider group cursor-help"
-                title="Ordenado alfabeticamente (com prioridade para o que bate melhor na busca)"
+                className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider group cursor-help"
+                title="Ordenado alfabeticamente"
               >
                 <div className="flex items-center gap-1">
                   Descrição
-                  <ArrowUpDown size={10} className="text-slate-300" />
+                  <ArrowUpDown size={10} className="text-slate-300 dark:text-slate-600" />
                 </div>
               </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">
                 Classificação
               </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right whitespace-nowrap">
+              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
                 Inicial
               </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right whitespace-nowrap">
+              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
                 Saldo Atual
               </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right whitespace-nowrap">
+              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
                 Valor Total
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2 text-slate-300">
+                  <div className="flex flex-col items-center justify-center gap-2 text-slate-300 dark:text-slate-600">
                     <Search size={24} />
                     <span className="text-xs italic">Nenhum item encontrado.</span>
                   </div>
@@ -156,45 +123,43 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
                 const currentStock = getCurrentStock(item.id, items, movements)
                 const totalValue = currentStock * item.unitPrice
 
-                // --- Lógica de Estilo da Linha (Row) ---
-                let rowClass = 'group bg-white hover:bg-slate-50 transition-all'
-                let badgeClass = 'bg-slate-100 text-slate-600'
+                // --- Lógica de Estilo da Linha (Dark Compatible) ---
+                let rowClass = 'group bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all'
+                let badgeClass = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                 let StatusIcon = CheckCircle2
 
                 if (currentStock <= 0) {
-                  rowClass = 'group bg-rose-50 hover:bg-rose-100 transition-all'
-                  badgeClass = 'bg-rose-500 text-white'
+                  // Vermelho
+                  rowClass = 'group bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 transition-all'
+                  badgeClass = 'bg-rose-500 text-white dark:bg-rose-600'
                   StatusIcon = XCircle
                 } else if (currentStock < 10) {
-                  rowClass = 'group bg-amber-50 hover:bg-amber-100 transition-all'
-                  badgeClass = 'bg-amber-400 text-amber-900'
+                  // Amarelo
+                  rowClass = 'group bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 transition-all'
+                  badgeClass = 'bg-amber-400 text-amber-900 dark:bg-amber-500 dark:text-amber-950'
                   StatusIcon = AlertTriangle
                 }
 
                 return (
-                  // key única mesmo com itens duplicados na planilha
                   <tr key={`${item.id}-${index}`} className={rowClass}>
-                    {/* Descrição com truncate */}
                     <td
-                      className="px-6 py-3.5 text-xs font-semibold text-slate-700 max-w-[220px] sm:max-w-[320px]"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[220px] sm:max-w-[320px]"
                       title={item.description}
                     >
                       <div className="truncate">{item.description}</div>
                     </td>
 
-                    {/* Classificação com truncate também */}
                     <td
-                      className="px-6 py-3.5 text-xs text-slate-500 whitespace-nowrap max-w-[160px]"
+                      className="px-6 py-3.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap max-w-[160px]"
                       title={item.classification}
                     >
                       <div className="truncate">{item.classification}</div>
                     </td>
 
-                    <td className="px-6 py-3.5 text-xs text-right text-slate-400 font-mono whitespace-nowrap">
+                    <td className="px-6 py-3.5 text-xs text-right text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
                       {item.initialQty}
                     </td>
 
-                    {/* Coluna de Saldo */}
                     <td className="px-6 py-3.5 text-right whitespace-nowrap">
                       <div
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${badgeClass} min-w-[80px] justify-center`}
@@ -204,7 +169,7 @@ const ItemsTable: React.FC<Props> = ({ items, movements }) => {
                       </div>
                     </td>
 
-                    <td className="px-6 py-3.5 text-xs text-right text-slate-600 font-medium whitespace-nowrap">
+                    <td className="px-6 py-3.5 text-xs text-right text-slate-600 dark:text-slate-300 font-medium whitespace-nowrap">
                       {totalValue.toLocaleString('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
