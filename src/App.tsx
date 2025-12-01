@@ -19,6 +19,8 @@ import { Menu, Wifi, WifiOff, RefreshCw, Download, Trash2 } from 'lucide-react'
 // Importando as DUAS logos
 import logoLight from './assets/logo-empetur.png'
 import logoNight from './assets/logo-empetur-night.png'
+import logocontrole from './assets/logo-controle.png'
+import logocontrolenight from './assets/logo-controle-night.png'
 
 const AppContent: React.FC = () => {
   // --- Hook do Tema ---
@@ -86,7 +88,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('almox_movements', JSON.stringify(updatedMovements))
   }
 
-    const handleSync = async () => {
+  const handleSync = async () => {
     if (!items.length) {
       showToast({
         variant: 'info',
@@ -142,31 +144,30 @@ const AppContent: React.FC = () => {
     }
   }
 
-
-  const hasData = items.length > 0;
+  const hasData = items.length > 0
 
   // Estilos de botão reutilizáveis
-  const actionBtnClass = "flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+  const actionBtnClass =
+    'flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'
 
-  // Lógica para escolher a logo correta
-  const currentLogo = theme === 'dark' ? logoNight : logoLight;
+  // Lógica para escolher as logos corretas por tema
+  const empeturLogo = theme === 'dark' ? logoNight : logoLight
+  const controleLogo = theme === 'dark' ? logocontrolenight : logocontrole
 
   return (
     // Removi 'flex' daqui para controlar manualmente a estrutura vertical
     <div className="min-h-screen bg-slate-50 dark:bg-[#050912] text-slate-600 dark:text-slate-300 font-sans transition-colors duration-300">
-      
       {/* --- BARRA SUPERIOR DE IDENTIDADE (Cores de PE) --- */}
       {/* h-3 (12px) para dar destaque */}
       <div className="fixed top-0 left-0 right-0 h-1 z-[100] flex shadow-md">
-         <div className="h-full w-1/4 bg-[#0F3B82]"></div>
-         <div className="h-full w-1/4 bg-[#FFCD00]"></div>
-         <div className="h-full w-1/4 bg-[#89D700]"></div>
-         <div className="h-full w-1/4 bg-[#E30613]"></div>
+        <div className="h-full w-1/4 bg-[#0F3B82]"></div>
+        <div className="h-full w-1/4 bg-[#FFCD00]"></div>
+        <div className="h-full w-1/4 bg-[#89D700]"></div>
+        <div className="h-full w-1/4 bg-[#E30613]"></div>
       </div>
 
       {/* Wrapper Flexível que compensa a barra fixa (pt-3) */}
       <div className="flex pt-0 min-h-screen">
-        
         {/* --- MENU MOBILE (Header) --- */}
         {/* Ajustado top-3 para não ficar debaixo da barra colorida */}
         <div className="lg:hidden fixed top-3 left-0 right-0 h-16 bg-white dark:bg-[#0F3B82] border-b border-slate-200 dark:border-blue-900 flex items-center justify-between px-4 z-40 shadow-sm transition-colors">
@@ -212,16 +213,29 @@ const AppContent: React.FC = () => {
         {/* --- CONTEÚDO PRINCIPAL --- */}
         <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-0 overflow-x-hidden w-full max-w-[1920px] mx-auto">
           <div className="max-w-7xl mx-auto space-y-6">
-            
             {/* Header Area (Desktop) */}
             <div className="hidden lg:flex items-center justify-between">
+              {/* Esquerda: logo Controle Interno */}
               <div className="flex items-center gap-6">
-                {/* LOGO DINÂMICA (Muda conforme o tema) */}
-                <img 
-                  src={currentLogo} 
-                  alt="Logo EMPETUR" 
+                <img
+                  src={controleLogo}
+                  alt="Logo Controle Interno EMPETUR"
                   className="h-auto w-80 object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
-                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
+                />
+              </div>
+
+              {/* Centro/Direita: logo EMPETUR */}
+              <div className="flex items-center gap-6">
+                <img
+                  src={empeturLogo}
+                  alt="Logo EMPETUR"
+                  className="h-auto w-80 object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
               </div>
 
@@ -274,38 +288,41 @@ const AppContent: React.FC = () => {
             {/* NOVA BARRA DE AÇÕES (TOOLBAR) */}
             <div className="bg-white dark:bg-[#0a0f1d] p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 px-1">
-                  {/* Botão Sync */}
-                  <button 
-                    onClick={handleSync} 
-                    disabled={!hasData || syncing}
-                    className={`${actionBtnClass} bg-blue-50 text-[#0F3B82] hover:bg-[#0F3B82] hover:text-white dark:bg-[#0F3B82]/20 dark:text-[#00C3E3] dark:hover:bg-[#0F3B82] dark:hover:text-white`}
-                  >
-                    <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
-                    {syncing ? 'Sincronizando...' : 'Sync Planilha'}
-                  </button>
+                {/* Botão Sync */}
+                <button
+                  onClick={handleSync}
+                  disabled={!hasData || syncing}
+                  className={`${actionBtnClass} bg-blue-50 text-[#0F3B82] hover:bg-[#0F3B82] hover:text-white dark:bg-[#0F3B82]/20 dark:text-[#00C3E3] dark:hover:bg-[#0F3B82] dark:hover:text-white`}
+                >
+                  <RefreshCw
+                    size={16}
+                    className={syncing ? 'animate-spin' : ''}
+                  />
+                  {syncing ? 'Sincronizando...' : 'Sync Planilha'}
+                </button>
 
-                  {/* Botão Baixar */}
-                  <button 
-                    onClick={() => exportMovementsToExcel(items, movements)}
-                    disabled={!hasData}
-                    className={`${actionBtnClass} bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700`}
-                  >
-                    <Download size={16} />
-                    Baixar Histórico
-                  </button>
+                {/* Botão Baixar */}
+                <button
+                  onClick={() => exportMovementsToExcel(items, movements)}
+                  disabled={!hasData}
+                  className={`${actionBtnClass} bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700`}
+                >
+                  <Download size={16} />
+                  Baixar Histórico
+                </button>
               </div>
 
               <div className="flex items-center gap-2 pl-2 border-l border-slate-100 dark:border-slate-800 ml-auto">
-                  {/* Botão Limpar */}
-                  <button 
-                      onClick={() => setShowClearDialog(true)}
-                      disabled={!hasData}
-                      className={`${actionBtnClass} text-[#E30613] hover:bg-[#E30613]/10 dark:hover:bg-[#E30613]/20 px-3`}
-                      title="Limpar todos os dados"
-                  >
-                      <Trash2 size={16} />
-                      <span className="hidden sm:inline">Limpar Tudo</span>
-                  </button>
+                {/* Botão Limpar */}
+                <button
+                  onClick={() => setShowClearDialog(true)}
+                  disabled={!hasData}
+                  className={`${actionBtnClass} text-[#E30613] hover:bg-[#E30613]/10 dark:hover:bg-[#E30613]/20 px-3`}
+                  title="Limpar todos os dados"
+                >
+                  <Trash2 size={16} />
+                  <span className="hidden sm:inline">Limpar Tudo</span>
+                </button>
               </div>
             </div>
 
