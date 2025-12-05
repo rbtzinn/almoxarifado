@@ -130,7 +130,7 @@ export async function parseItemsFromFile(file: File): Promise<AlmoxItem[]> {
         unitPrice: parseNumber(priceRaw),
         // valor do estoque em reais no momento da importação (opcional)
         initialStockValue: parseNumber(estoqueReaisRaw),
-      } as AlmoxItem
+      } as unknown as AlmoxItem
     })
     .filter((i): i is AlmoxItem => Boolean(i))
 

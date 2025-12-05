@@ -1,4 +1,5 @@
 export interface AlmoxItem {
+  price(price: any): unknown
   id: string
   classification: string
   description: string

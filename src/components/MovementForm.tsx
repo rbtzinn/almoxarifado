@@ -60,6 +60,28 @@ const MovementForm: React.FC<Props> = ({ items, onAddMovement }) => {
     setFormError(null)
   }
 
+  // Só permite números + vírgula/ponto no campo de quantidade
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+
+    // permite apagar tudo
+    if (value === '') {
+      setQuantity('')
+      return
+    }
+
+    // normaliza para validar (troca vírgula por ponto)
+    const normalized = value.replace(',', '.')
+
+    // aceita: 123 | 123. | 123.45
+    const regex = /^\d+(\.\d*)?$/
+
+    if (regex.test(normalized)) {
+      setQuantity(value)
+    }
+    // se não passar na regex, simplesmente ignora a digitação
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
@@ -159,10 +181,10 @@ const MovementForm: React.FC<Props> = ({ items, onAddMovement }) => {
             <div className={inputWrapper}>
                <Package className={iconClass} />
                <input 
-                 type="number"
-                 step="0.01"
+                 type="text"
+                 inputMode="decimal"
                  value={quantity}
-                 onChange={e => setQuantity(e.target.value)}
+                 onChange={handleQuantityChange}
                  placeholder="0"
                  disabled={disabled}
                  className={inputField}
