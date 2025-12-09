@@ -1,188 +1,175 @@
 import React, { useMemo, useState } from 'react'
 import type { AlmoxItem, Movement } from '../types'
 import { getCurrentStock } from '../utils/stock'
-import {
-  Search,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  ArrowUpDown,
-} from 'lucide-react'
+import { Search, Hexagon, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
 
-function normalizeText(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
-interface Props {
-  items: AlmoxItem[]
-  movements: Movement[]
-}
+interface Props { items: AlmoxItem[]; movements: Movement[] }
 
 const ItemsTable: React.FC<Props> = ({ items, movements }) => {
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
-    const termNorm = normalizeText(search)
-    const withNorm = items.map((item) => ({
-      item,
-      descNorm: normalizeText(item.description),
-    }))
+    const term = search.trim().toLowerCase()
+    const base = [...items]
 
-    if (!termNorm) {
-      return withNorm
-        .sort((a, b) =>
-          a.descNorm.localeCompare(b.descNorm, 'pt-BR', { sensitivity: 'base' }),
-        )
-        .map(({ item }) => item)
+    // Sem termo: lista toda ordenada por descrição
+    if (!term) {
+      return base.sort((a, b) =>
+        a.description.localeCompare(b.description, 'pt-BR'),
+      )
     }
 
-    const withMeta = withNorm
-      .map(({ item, descNorm }) => {
-        const index = descNorm.indexOf(termNorm)
-        if (index === -1) return null 
-        return { item, descNorm, index, isPrefix: index === 0 }
+    // Com termo: filtra + prioriza quem começa com o termo
+    return base
+      .filter(i => i.description.toLowerCase().includes(term))
+      .sort((a, b) => {
+        const aDesc = a.description.toLowerCase()
+        const bDesc = b.description.toLowerCase()
+
+        const aStarts = aDesc.startsWith(term)
+        const bStarts = bDesc.startsWith(term)
+
+        if (aStarts && !bStarts) return -1
+        if (!aStarts && bStarts) return 1
+
+        return aDesc.localeCompare(bDesc, 'pt-BR')
       })
-      .filter((x): x is { item: AlmoxItem; descNorm: string; index: number; isPrefix: boolean } => x !== null)
-
-    withMeta.sort((a, b) => {
-      if (a.isPrefix !== b.isPrefix) return a.isPrefix ? -1 : 1
-      if (a.index !== b.index) return a.index - b.index
-      return a.descNorm.localeCompare(b.descNorm, 'pt-BR', { sensitivity: 'base' })
-    })
-
-    return withMeta.map(({ item }) => item)
   }, [items, search])
 
   return (
-    <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 h-full flex flex-col overflow-hidden mb-10 transition-colors duration-300">
-      {/* Header Fixo */}
-      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-[#0a0f1d] shrink-0">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0a0f1d] rounded-[2rem] overflow-hidden shadow-sm border border-slate-100 dark:border-white/5 mb-16">
+      {/* Header */}
+      <div className="p-6 md:p-8 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 bg-white dark:bg-[#0a0f1d] z-20">
         <div>
-          <h2 className="text-sm font-bold text-slate-800 dark:text-white">Visão Geral do Estoque</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-            Saldo atualizado em tempo real.
+          <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">
+            Estoque Geral
+          </h2>
+          <p className="text-xs font-medium text-slate-400 mt-1">
+            Visão completa dos itens e valores.
           </p>
         </div>
-
         <div className="relative group">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 group-focus-within:text-[#0F3B82] transition-colors" />
+          <Search className="absolute left-4 top-3 text-slate-400 w-4 h-4 group-focus-within:text-[#0F3B82] transition-colors" />
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filtrar por nome..."
-            className="pl-10 pr-4 py-2 w-64 rounded-xl bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 focus:bg-white dark:focus:bg-[#0a0f1d] focus:border-[#0F3B82] dark:focus:border-[#00C3E3] focus:ring-4 focus:ring-[#0F3B82]/10 text-xs font-medium transition-all outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400"
+            onChange={e => setSearch(e.target.value)}
+            className="pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-[#0F3B82] outline-none w-full md:w-64 transition-all placeholder:text-slate-400"
+            placeholder="Filtrar tabela..."
           />
         </div>
       </div>
 
-      {/* Tabela Scrollável */}
-      <div className="flex-1 overflow-auto bg-white dark:bg-[#0a0f1d] custom-scrollbar max-h-[420px] lg:max-h-[520px] 2xl:max-h-[620px]">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 dark:bg-[#111827] sticky top-0 z-20 shadow-sm border-b border-slate-100 dark:border-slate-800">
-            <tr>
-              <th
-                className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider group cursor-help"
-                title="Ordenado alfabeticamente"
-              >
-                <div className="flex items-center gap-1">
-                  Descrição
-                  <ArrowUpDown size={10} className="text-slate-300 dark:text-slate-600" />
-                </div>
+      {/* Container com scroll definido */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 md:px-8 pb-8 min-h-0 relative max-h-[60vh]">
+        <table className="w-full border-separate border-spacing-y-2">
+          <thead className="sticky top-0 z-10">
+            <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-left">
+              <th className="pb-4 pl-4 bg-white dark:bg-[#0a0f1d]">Descrição</th>
+              <th className="pb-4 bg-white dark:bg-[#0a0f1d]">Grupo</th>
+              <th className="pb-4 text-center bg-white dark:bg-[#0a0f1d]">
+                Status
               </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                Classificação
+              <th className="pb-4 text-right bg-white dark:bg-[#0a0f1d]">
+                Qtd
               </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
-                Inicial
-              </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
-                Saldo Atual
-              </th>
-              <th className="px-6 py-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
-                Valor Total
+              <th className="pb-4 text-right pr-4 bg-white dark:bg-[#0a0f1d]">
+                Total
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2 text-slate-300 dark:text-slate-600">
-                    <Search size={24} />
-                    <span className="text-xs italic">Nenhum item encontrado.</span>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filtered.map((item, index) => {
-                const currentStock = getCurrentStock(item.id, items, movements)
-                const totalValue = currentStock * item.unitPrice
+          <tbody>
+            {filtered.map((item, index) => {
+              const stock = getCurrentStock(item.id, items, movements)
+              const value = stock * item.unitPrice
 
-                // --- Lógica de Estilo da Linha (Dark Compatible) ---
-                let rowClass = 'group bg-white dark:bg-[#0a0f1d] hover:bg-slate-50 dark:hover:bg-[#111827] transition-all'
-                let badgeClass = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                let StatusIcon = CheckCircle2
+              let rowClass =
+                'group transition-all hover:bg-slate-50 dark:hover:bg-white/5'
+              let badgeClass =
+                'bg-slate-100 dark:bg-white/10 text-slate-500'
+              let icon = <CheckCircle2 size={12} />
+              let indicatorColor = 'bg-slate-200 dark:bg-slate-700'
 
-                if (currentStock <= 0) {
-                  // Vermelho
-                  rowClass = 'group bg-red-50 hover:bg-red-100 dark:bg-[#E30613]/10 dark:hover:bg-[#E30613]/20 transition-all'
-                  badgeClass = 'bg-[#E30613] text-white dark:bg-[#E30613]'
-                  StatusIcon = XCircle
-                } else if (currentStock < 10) {
-                  // Amarelo
-                  rowClass = 'group bg-amber-50 hover:bg-amber-100 dark:bg-[#FFCD00]/10 dark:hover:bg-[#FFCD00]/20 transition-all'
-                  badgeClass = 'bg-[#FFCD00] text-amber-900 dark:bg-[#FFCD00] dark:text-amber-950'
-                  StatusIcon = AlertTriangle
-                }
+              if (stock <= 0) {
+                badgeClass =
+                  'bg-[#E30613]/10 text-[#E30613] dark:bg-[#E30613]/20 dark:text-[#E30613]'
+                icon = <XCircle size={12} />
+                indicatorColor = 'bg-[#E30613]'
+              } else if (stock < 10) {
+                badgeClass =
+                  'bg-[#FFCD00]/10 text-amber-700 dark:bg-[#FFCD00]/20 dark:text-[#FFCD00]'
+                icon = <AlertTriangle size={12} />
+                indicatorColor = 'bg-[#FFCD00]'
+              } else {
+                indicatorColor = 'bg-[#89D700]'
+                badgeClass =
+                  'bg-[#89D700]/10 text-[#5c8d00] dark:bg-[#89D700]/20 dark:text-[#89D700]'
+              }
 
-                return (
-                  <tr key={`${item.id}-${index}`} className={rowClass}>
-                    <td
-                      className="px-6 py-3.5 text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[220px] sm:max-w-[320px]"
-                      title={item.description}
-                    >
-                      <div className="truncate">{item.description}</div>
-                    </td>
-
-                    <td
-                      className="px-6 py-3.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap max-w-[160px]"
-                      title={item.classification}
-                    >
-                      <div className="truncate">{item.classification}</div>
-                    </td>
-
-                    <td className="px-6 py-3.5 text-xs text-right text-slate-400 dark:text-slate-500 font-mono whitespace-nowrap">
-                      {item.initialQty}
-                    </td>
-
-                    <td className="px-6 py-3.5 text-right whitespace-nowrap">
-                      <div
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold ${badgeClass} min-w-[80px] justify-center`}
-                      >
-                        <StatusIcon size={10} strokeWidth={3} />
-                        {currentStock} un
+              return (
+                <tr key={`${item.id}-${index}`} className={rowClass}>
+                  <td className="relative bg-white dark:bg-[#111111] rounded-l-xl border-y border-l border-slate-100 dark:border-white/5 py-4 pl-5">
+                    <div
+                      className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full ${indicatorColor}`}
+                    />
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-slate-50 dark:bg-white/5 rounded-lg text-slate-300 dark:text-slate-600">
+                        <Hexagon size={16} strokeWidth={1.5} />
                       </div>
-                    </td>
+                      <span
+                        className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[180px] md:max-w-xs"
+                        title={item.description}
+                      >
+                        {item.description}
+                      </span>
+                    </div>
+                  </td>
 
-                    <td className="px-6 py-3.5 text-xs text-right text-slate-600 dark:text-slate-300 font-medium whitespace-nowrap">
-                      {totalValue.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
-                    </td>
-                  </tr>
-                )
-              })
-            )}
+                  <td className="bg-white dark:bg-[#111111] border-y border-slate-100 dark:border-white/5 py-4">
+                    <span className="text-[10px] font-medium px-2 py-1 rounded bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 truncate max-w-[100px] block">
+                      {item.classification}
+                    </span>
+                  </td>
+
+                  <td className="bg-white dark:bg-[#111111] border-y border-slate-100 dark:border-white/5 py-4 text-center">
+                    <div
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${badgeClass}`}
+                    >
+                      {icon}
+                      <span>
+                        {stock <= 0
+                          ? 'CRÍTICO'
+                          : stock < 10
+                          ? 'BAIXO'
+                          : 'NORMAL'}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="bg-white dark:bg-[#111111] border-y border-slate-100 dark:border-white/5 py-4 text-right font-mono text-sm font-bold text-slate-600 dark:text-slate-300">
+                    {stock}
+                  </td>
+
+                  <td className="bg-white dark:bg-[#111111] rounded-r-xl border-y border-r border-slate-100 dark:border-white/5 py-4 pr-4 text-right font-mono text-sm text-slate-400 dark:text-slate-500">
+                    {value.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
+
+        {!filtered.length && (
+          <div className="flex flex-col items-center justify-center h-64 text-slate-300 dark:text-slate-600">
+            <Search size={48} strokeWidth={1} className="mb-4 opacity-50" />
+            <p className="text-sm font-medium">Nenhum item encontrado.</p>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   )
 }
 

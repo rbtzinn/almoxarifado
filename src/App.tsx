@@ -1,11 +1,12 @@
+// src/App.tsx
 import React, { useEffect, useState } from 'react'
 import type { AlmoxItem, Movement } from './types'
 import { loadItems, loadMovements, saveItems, saveMovements } from './utils/storage'
-import { syncMovementsToGoogleSheet } from './utils/sheets'
+import { syncInventoryToGoogleSheet, syncMovementsToGoogleSheet } from './utils/sheets'
 import { exportMovementsToExcel } from './utils/excel'
-// Adicionei useTheme na importação
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
+import { Menu, Wifi, WifiOff, RefreshCw, Download, Trash2, Zap } from 'lucide-react'
 
 // Componentes
 import Sidebar from './components/Sidebar'
@@ -14,41 +15,35 @@ import ItemsTable from './components/ItemsTable'
 import HistoryPanel from './components/HistoryPanel'
 import ConfirmDialog from './components/ui/ConfirmDialog'
 import LocalChangesCard from './components/LocalChangesCard'
-import { Menu, Wifi, WifiOff, RefreshCw, Download, Trash2 } from 'lucide-react'
+import StatsCards from './components/StatsCards'
+import ItemsManagerModal from './components/ItemsManagerModal'
+import MovementsManagerModal from './components/MovementsManagerModal'
+import StockSummaryModal from './components/StockSummaryModal'
 
-// Importando as DUAS logos
+// Logos
 import logoLight from './assets/logo-empetur.png'
 import logoNight from './assets/logo-empetur-night.png'
 import logocontrole from './assets/logo-controle.png'
 import logocontrolenight from './assets/logo-controle-night.png'
 
 const AppContent: React.FC = () => {
-  // --- Hook do Tema ---
   const { theme } = useTheme()
-
-  // --- Estados de Dados ---
   const [items, setItems] = useState<AlmoxItem[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
-
-  // --- Estados de UI ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showClearDialog, setShowClearDialog] = useState(false)
+  const [showItemsManager, setShowItemsManager] = useState(false)
   const [syncing, setSyncing] = useState(false)
-
-  // --- Estado de Conexão Real ---
   const [isOnline, setIsOnline] = useState(navigator.onLine)
-
+  const [isMovementsModalOpen, setIsMovementsModalOpen] = useState(false)
+  const [isStockSummaryOpen, setIsStockSummaryOpen] = useState(false) // << NOVO
   const { showToast } = useToast()
-
-  // --- Effects ---
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
-
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
@@ -68,7 +63,6 @@ const AppContent: React.FC = () => {
     saveMovements(movements)
   }, [movements])
 
-  // --- Handlers ---
   const handleItemsLoaded = (newItems: AlmoxItem[]) => setItems(newItems)
 
   const handleAddMovement = (mov: Movement) =>
@@ -82,62 +76,55 @@ const AppContent: React.FC = () => {
     setShowClearDialog(false)
   }
 
-  const handleDeleteMovement = (movementId: string) => {
-    const updatedMovements = movements.filter((m) => m.id !== movementId)
-    setMovements(updatedMovements)
-    localStorage.setItem('almox_movements', JSON.stringify(updatedMovements))
+  const handleDeleteMovement = (id: string) => {
+    setMovements((prev) => {
+      const updated = prev.filter((m) => m.id !== id)
+      localStorage.setItem('almox_movements', JSON.stringify(updated))
+      return updated
+    })
   }
 
   const handleSync = async () => {
     if (!items.length) {
       showToast({
         variant: 'info',
-        title: 'Nada para sincronizar',
-        message:
-          'Nenhum item foi importado. Importe uma planilha antes de sincronizar.',
+        title: 'Vazio',
+        message: 'Importe uma planilha antes.',
       })
       return
     }
-
     if (!isOnline) {
       showToast({
         variant: 'warning',
-        title: 'Você está offline',
-        message:
-          'Conecte-se à internet para sincronizar com o Google Sheets.',
+        title: 'Offline',
+        message: 'Sem internet.',
       })
       return
     }
-
     setSyncing(true)
     try {
+      await syncInventoryToGoogleSheet(items, movements)
       const updatedList = await syncMovementsToGoogleSheet(items, movements)
-
-      // Função retornou null => não tinha movimento novo
       if (updatedList === null) {
         showToast({
           variant: 'info',
-          title: 'Nenhuma alteração nova',
-          message: 'Não há novas movimentações para enviar para a planilha.',
+          title: 'Tudo certo',
+          message: 'Nada novo para enviar.',
         })
         return
       }
-
-      // Sucesso: recebemos a lista com os synced marcados
       setMovements(updatedList)
       showToast({
         variant: 'success',
-        title: 'Sincronização concluída',
-        message: 'As movimentações foram sincronizadas com sucesso.',
+        title: 'Sucesso',
+        message: 'Sincronizado!',
       })
     } catch (error: any) {
       console.error(error)
       showToast({
         variant: 'error',
-        title: 'Erro na sincronização',
-        message:
-          error?.message ||
-          'Ocorreu um problema ao sincronizar os dados com o Google Sheets.',
+        title: 'Erro',
+        message: error?.message || 'Falha na sincronização.',
       })
     } finally {
       setSyncing(false)
@@ -146,208 +133,188 @@ const AppContent: React.FC = () => {
 
   const hasData = items.length > 0
 
-  // Estilos de botão reutilizáveis
-  const actionBtnClass =
-    'flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'
-
-  // Lógica para escolher as logos corretas por tema
+  // Definição das logos baseada no tema
   const empeturLogo = theme === 'dark' ? logoNight : logoLight
   const controleLogo = theme === 'dark' ? logocontrolenight : logocontrole
 
   return (
-    // Removi 'flex' daqui para controlar manualmente a estrutura vertical
-    <div className="min-h-screen bg-slate-50 dark:bg-[#050912] text-slate-600 dark:text-slate-300 font-sans transition-colors duration-300">
-      {/* --- BARRA SUPERIOR DE IDENTIDADE (Cores de PE) --- */}
-      <div className="fixed top-0 left-0 right-0 h-1 z-[100] flex shadow-md">
-        <div className="h-full w-1/4 bg-[#0F3B82]"></div>
-        <div className="h-full w-1/4 bg-[#FFCD00]"></div>
-        <div className="h-full w-1/4 bg-[#89D700]"></div>
-        <div className="h-full w-1/4 bg-[#E30613]"></div>
+    <div className="min-h-screen bg-[#f0f4f8] dark:bg-[#050505] text-slate-600 dark:text-slate-300 font-sans transition-colors duração-500 overflow-x-hidden relative selection:bg-[#0F3B82] selection:text-white">
+      {/* Background Ambient Orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#0F3B82] rounded-full mix-blend-multiply filter blur-[128px] opacity-5 dark:opacity-10 animate-blob" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[#4800BC] rounded-full mix-blend-multiply filter blur-[128px] opacity-5 dark:opacity-10 animate-blob animation-delay-2000" />
+        <div className="absolute top-[20%] right-[20%] w-[30vw] h-[30vw] bg-[#89D700] rounded-full mix-blend-multiply filter blur-[128px] opacity-5 dark:opacity-5 animate-blob animation-delay-4000" />
       </div>
 
-      {/* Wrapper Flexível que compensa a barra fixa (pt-3) */}
-      <div className="flex pt-0 min-h-screen">
-        {/* --- MENU MOBILE (Header) --- */}
-        <div className="lg:hidden fixed top-3 left-0 right-0 h-16 bg-white dark:bg-[#0F3B82] border-b border-slate-200 dark:border-blue-900 flex items-center justify-between px-4 z-40 shadow-sm transition-colors">
-          <div className="font-bold text-[#0F3B82] dark:text-white flex items-center gap-2 text-lg">
-            <div className="w-8 h-8 bg-[#0F3B82] dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-[#0F3B82] shadow-lg">
-              A
+      <div className="relative z-10 flex min-h-screen">
+        {/* --- MOBILE HEADER --- */}
+        <div className="lg:hidden fixed top-4 left-4 right-4 h-16 bg-white/80 dark:bg-[#111111]/80 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl flex items-center justify-between px-5 z-50 shadow-lg shadow-black/5">
+          <div className="font-black text-[#0F3B82] dark:text-white flex items-center gap-3 text-lg tracking-tight">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#0F3B82] to-[#4800BC] rounded-xl flex items-center justify-center text-white shadow-lg shadow-[#0F3B82]/20">
+              <Zap size={18} fill="currentColor" />
             </div>
-            Almoxarifado
+            <span>ALMOX</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-slate-500 dark:text-blue-100 hover:bg-slate-100 dark:hover:bg-blue-800 rounded-lg active:scale-95 transition-transform"
+            className="p-2.5 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white rounded-xl active:scale-95 transition-all"
           >
-            <Menu className="w-6 h-6" />
+            <Menu size={20} />
           </button>
         </div>
 
-        {/* --- SIDEBAR --- */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-[#0F3B82]/20 dark:bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
-        {/* Ajustado top-3 e altura calculada para descontar a barra */}
         <aside
           className={`
-            fixed lg:sticky top-0 left-0 bottom-0 z-50 h-[calc(100vh-0.75rem)] w-72 bg-white dark:bg-[#0a0f1d] border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none transition-transform duration-300 ease-out
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          `}
+    fixed top-0 left-0 h-screen z-50 w-80 
+    transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+    ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+    lg:bg-transparent
+  `}
+        // REMOVIDO: "lg:sticky"
+        // MANTIDO: "fixed" (agora vale para mobile e desktop)
         >
-          <Sidebar
-            onCloseMobile={() => setIsSidebarOpen(false)}
-            onItemsLoaded={handleItemsLoaded}
-            currentItemCount={items.length}
-            hasData={hasData}
-            items={items}
-            movements={movements}
-          />
+          <div className="h-full p-0 lg:p-6 lg:pr-0">
+            {/* Adicionado overflow-y-auto aqui caso o menu seja muito alto e precise de scroll interno */}
+            <div className="h-full w-full bg-white/80 dark:bg-[#111111]/80 backdrop-blur-2xl lg:rounded-[2rem] border-r lg:border border-slate-200/50 dark:border-white/5 shadow-2xl lg:shadow-none overflow-hidden overflow-y-auto relative">
+              <Sidebar
+                onCloseMobile={() => setIsSidebarOpen(false)}
+                onItemsLoaded={handleItemsLoaded}
+                currentItemCount={items.length}
+                hasData={hasData}
+                items={items}
+                movements={movements}
+              />
+            </div>
+          </div>
         </aside>
 
-        {/* --- CONTEÚDO PRINCIPAL --- */}
-        <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8 overflow-x-hidden w-full max-w-[1920px] mx-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header Area (Desktop) */}
-            <div className="hidden lg:flex items-center justify-between">
-              {/* Logos à esquerda */}
-              <div className="flex items-center gap-10">
-                {/* CONTROLE INTERNO */}
-                <div className="h-[80px] w-[300px] flex items-center justify-center overflow-hidden shrink-0">
+        {/* --- MAIN CONTENT --- */}
+        <main className="flex-1 p-4 lg:p-8 pt-24 lg:pt-8 w-full lg:ml-80 transition-[margin] duration-500">
+          <div className="max-w-[1600px] mx-auto flex flex-col gap-8">
+            {/* Header Desktop - LOGOS EM DESTAQUE */}
+            <div className="hidden lg:flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight mb-1">
+                  Dashboard
+                </h1>
+                <p className="text-sm font-medium text-slate-400 dark:text-slate-500">
+                  Visão geral do sistema e operações.
+                </p>
+              </div>
+
+              {/* Área de Marcas - Aumentada e Destacada */}
+              <div className="flex items-center gap-8 bg-white/40 dark:bg-white/5 backdrop-blur-md px-8 py-4 rounded-2xl border border-white/40 dark:border-white/5 shadow-sm">
+                {/* Controle Interno */}
+                <div className="h-[60px] flex items-center">
                   <img
                     src={controleLogo}
-                    alt="Logo Controle Interno EMPETUR"
-                    className="h-[130px] w-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
+                    alt="Logo Controle Interno"
+                    className="h-full w-auto object-contain hover:scale-105 transition-transform duration-300 drop-shadow-sm"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}
                   />
                 </div>
 
-                {/* EMPETUR + GOV PE */}
-                <div className="h-[64px] w-[320px] flex items-center justify-center overflow-hidden shrink-0">
+                {/* Divisor */}
+                <div className="h-10 w-px bg-slate-300 dark:bg-white/10 opacity-50" />
+
+                {/* EMPETUR */}
+                <div className="h-[50px] flex items-center">
                   <img
                     src={empeturLogo}
                     alt="Logo EMPETUR"
-                    className="h-[130px] w-auto object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
+                    className="h-full w-auto object-contain hover:scale-105 transition-transform duração-300 drop-shadow-sm"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}
                   />
                 </div>
-              </div>
 
-              {/* Área Direita: Status + Data */}
-              <div className="flex items-center gap-3">
+                {/* Status Indicator */}
                 <div
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all duration-300 ${isOnline
-                      ? 'bg-white dark:bg-[#0F3B82]/20 border-slate-200 dark:border-[#0F3B82]/40'
-                      : 'bg-[#E30613]/10 dark:bg-[#E30613]/20 border-[#E30613]/20 dark:border-[#E30613]/40'
+                  className={`ml-4 flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-black/20 backdrop-blur-md transition-all ${isOnline ? 'text-[#89D700]' : 'text-[#E30613]'
                     }`}
                 >
-                  <span className="relative flex h-2 w-2">
-                    {isOnline && (
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#89D700] opacity-75"></span>
-                    )}
-                    <span
-                      className={`relative inline-flex rounded-full h-2 w-2 ${isOnline ? 'bg-[#89D700]' : 'bg-[#E30613]'
-                        }`}
-                    ></span>
-                  </span>
-                  <span
-                    className={`text-xs font-bold ${isOnline
-                        ? 'text-slate-600 dark:text-blue-100'
-                        : 'text-[#E30613] dark:text-red-300'
-                      }`}
-                  >
-                    {isOnline ? 'Online' : 'Offline'}
-                  </span>
-                  {isOnline ? (
-                    <Wifi size={14} className="text-[#89D700]" />
-                  ) : (
-                    <WifiOff size={14} className="text-[#E30613]" />
-                  )}
-                </div>
-
-                <div className="text-xs font-medium bg-white dark:bg-[#111827] px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 shadow-sm transition-colors">
-                  {new Date().toLocaleDateString('pt-BR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
                 </div>
               </div>
             </div>
 
-            {/* NOVA BARRA DE AÇÕES (TOOLBAR) */}
-            <div className="bg-white dark:bg-[#0a0f1d] p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 px-1">
-                {/* Botão Sync */}
-                <button
-                  onClick={handleSync}
-                  disabled={!hasData || syncing}
-                  className={`${actionBtnClass} bg-blue-50 text-[#0F3B82] hover:bg-[#0F3B82] hover:text-white dark:bg-[#0F3B82]/20 dark:text-[#00C3E3] dark:hover:bg-[#0F3B82] dark:hover:text-white`}
-                >
-                  <RefreshCw
-                    size={16}
-                    className={syncing ? 'animate-spin' : ''}
-                  />
-                  {syncing ? 'Sincronizando...' : 'Sync Planilha'}
-                </button>
+            {/* Quick Actions Bar */}
+            <div className="flex flex-wrap items-center gap-3 bg-white/60 dark:bg-[#111111]/60 backdrop-blur-xl p-2.5 rounded-2xl border border-white/40 dark:border-white/5 shadow-sm">
+              <button
+                onClick={handleSync}
+                disabled={!hasData || syncing}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#0F3B82] hover:bg-[#0d306b] text-white font-bold text-xs uppercase tracking-wide transition-all shadow-lg shadow-[#0F3B82]/30 active:scale-95 disabled:opacity-50 disabled:shadow-none"
+              >
+                <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+                {syncing ? 'Sincronizando...' : 'Sincronizar'}
+              </button>
 
-                {/* Botão Baixar */}
-                <button
-                  onClick={() => exportMovementsToExcel(items, movements)}
-                  disabled={!hasData}
-                  className={`${actionBtnClass} bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700`}
-                >
-                  <Download size={16} />
-                  Baixar Histórico
-                </button>
-              </div>
+              <button
+                onClick={() => exportMovementsToExcel(items, movements)}
+                disabled={!hasData}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 font-bold text-xs uppercase tracking-wide transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Download size={16} />
+                Excel
+              </button>
 
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-100 dark:border-slate-800 ml-auto">
-                {/* Botão Limpar */}
+              <div className="ml-auto pl-3 border-l border-slate-200 dark:border-white/10">
                 <button
                   onClick={() => setShowClearDialog(true)}
                   disabled={!hasData}
-                  className={`${actionBtnClass} text-[#E30613] hover:bg-[#E30613]/10 dark:hover:bg-[#E30613]/20 px-3`}
-                  title="Limpar todos os dados"
+                  className="p-3 rounded-xl text-[#E30613] hover:bg-[#E30613]/10 transition-colors disabled:opacity-50"
                 >
-                  <Trash2 size={16} />
-                  <span className="hidden sm:inline">Limpar Tudo</span>
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Grid Principal */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
-              {/* Coluna Esquerda: Form */}
-              <div className="xl:col-span-4">
-                <MovementForm items={items} onAddMovement={handleAddMovement} />
-              </div>
-
-              {/* Coluna Direita: Painéis */}
-              <div className="xl:col-span-8 flex flex-col">
-                <HistoryPanel items={items} movements={movements} />
-              </div>
-            </div>
-
-            {/* Fila de Sync */}
-            <div className="w-full pt-2">
-              <LocalChangesCard
+            {hasData && (
+              <StatsCards
                 items={items}
                 movements={movements}
-                onDelete={handleDeleteMovement}
+                onOpenItemsManager={() => setShowItemsManager(true)}
+                onOpenMovementsManager={() => setIsMovementsModalOpen(true)}
+                onOpenStockSummary={() => setIsStockSummaryOpen(true)} // << NOVO
               />
+            )}
+
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
+              {/* Left Column */}
+              <div className="xl:col-span-4 space-y-6 lg:space-y-8">
+                <div className="bg-white/80 dark:bg-[#111111]/80 backdrop-blur-xl rounded-[2rem] border border-white/20 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 overflow-hidden">
+                  <MovementForm items={items} onAddMovement={handleAddMovement} />
+                </div>
+
+                <div className="bg-white/80 dark:bg-[#111111]/80 backdrop-blur-xl rounded-[2rem] border border-white/20 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 overflow-hidden">
+                  <LocalChangesCard
+                    items={items}
+                    movements={movements}
+                    onDelete={handleDeleteMovement}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="xl:col-span-8 space-y-6 lg:space-y-8 h-full flex flex-col">
+                <div className="flex-1 bg-white/80 dark:bg-[#111111]/80 backdrop-blur-xl rounded-[2rem] border border-white/20 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 overflow-hidden min-h-[500px]">
+                  <HistoryPanel items={items} movements={movements} />
+                </div>
+              </div>
             </div>
 
-            {/* Tabela de Itens */}
-            <div className="w-full pt-2">
+            {/* Full Width Table */}
+            <div className="bg-white/80 dark:bg-[#111111]/80 backdrop-blur-xl rounded-[2rem] border border-white/20 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-black/20 overflow-hidden">
               <ItemsTable items={items} movements={movements} />
             </div>
           </div>
@@ -356,24 +323,46 @@ const AppContent: React.FC = () => {
 
       <ConfirmDialog
         open={showClearDialog}
-        title="Resetar Sistema"
-        description="Isso removerá todos os dados do navegador. Tem certeza?"
-        confirmLabel="Sim, Limpar tudo"
+        title="Formatação Completa"
+        description="Esta ação irá apagar todos os dados locais. Isso é irreversível."
+        confirmLabel="Confirmar Limpeza"
         onConfirm={handleClearAllData}
         onCancel={() => setShowClearDialog(false)}
+      />
+
+      <ItemsManagerModal
+        open={showItemsManager}
+        onClose={() => setShowItemsManager(false)}
+        items={items}
+        movements={movements}
+        onItemsChange={setItems}
+        onAddMovement={handleAddMovement}
+      />
+
+      <MovementsManagerModal
+        open={isMovementsModalOpen}
+        onClose={() => setIsMovementsModalOpen(false)}
+        movements={movements}
+        items={items} // Importante passar items para mostrar o nome
+        onDeleteMovement={handleDeleteMovement}
+      />
+
+      <StockSummaryModal
+        open={isStockSummaryOpen}
+        onClose={() => setIsStockSummaryOpen(false)}
+        items={items}
+        movements={movements}
       />
     </div>
   )
 }
 
-const App: React.FC = () => {
-  return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </ThemeProvider>
-  )
-}
+const App: React.FC = () => (
+  <ThemeProvider>
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  </ThemeProvider>
+)
 
 export default App

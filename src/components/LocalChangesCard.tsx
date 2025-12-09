@@ -1,206 +1,66 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import type { AlmoxItem, Movement } from '../types'
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CheckCircle2,
-  Clock,
-  Database,
-  RefreshCw,
-  Search,
-  Trash2,
-  X
-} from 'lucide-react'
+import { Cloud, Check, Trash2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
-function normalizeText(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
-interface Props {
-  items: AlmoxItem[]
-  movements: Movement[]
-  onDelete: (movementId: string) => void
-}
+interface Props { items: AlmoxItem[]; movements: Movement[]; onDelete: (id: string) => void }
 
 const LocalChangesCard: React.FC<Props> = ({ items, movements, onDelete }) => {
-  const [searchTerm, setSearchTerm] = useState('')
-
-  const unsyncedCount = useMemo(
-    () => movements.filter((m) => !m.synced).length,
-    [movements],
-  )
-
-  const sortedMovements = useMemo(
-    () =>
-      [...movements].sort((a, b) => {
-        if (a.synced !== b.synced) return a.synced ? 1 : -1
-        if (a.date < b.date) return 1
-        if (a.date > b.date) return -1
-        return a.id.localeCompare(b.id)
-      }),
-    [movements],
-  )
-
-  const filteredMovements = useMemo(() => {
-    if (!searchTerm) return sortedMovements
-    const term = normalizeText(searchTerm)
-    return sortedMovements.filter((m) => {
-      const item = items.find((i) => i.id === m.itemId)
-      const description = item?.description || ''
-      return normalizeText(description).includes(term)
-    })
-  }, [sortedMovements, searchTerm, items])
-
-  if (!movements.length) {
-    return (
-      <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center transition-colors duration-300">
-        <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-3">
-          <Database className="w-5 h-5 text-slate-300 dark:text-slate-500" />
+  const pending = useMemo(() => movements.filter(m => !m.synced), [movements])
+  
+  if (!pending.length) return (
+     <div className="w-full bg-white dark:bg-[#0a0f1d] p-6 text-center flex flex-col items-center justify-center min-h-[200px]">
+        <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center mb-3">
+           <Cloud className="text-slate-300 dark:text-slate-600" size={20} />
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Tudo limpo</h2>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[180px]">
-          Novas movimentações aparecerão aqui.
-        </p>
-      </section>
-    )
-  }
+        <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Tudo Sincronizado</p>
+        <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">O sistema está atualizado com a nuvem.</p>
+     </div>
+  )
 
   return (
-    <section className="bg-white dark:bg-[#0a0f1d] rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden max-h-[500px] transition-colors duration-300">
-      {/* Header */}
-      <header className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-white dark:bg-[#0a0f1d] z-10 shrink-0">
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#0F3B82] animate-pulse" />
-            <h2 className="text-sm font-bold text-slate-800 dark:text-white">Fila de Sync</h2>
-          </div>
-          <span
-            className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-              unsyncedCount > 0
-                ? 'bg-[#FFCD00]/20 text-amber-700 dark:text-[#FFCD00]'
-                : 'bg-[#89D700]/20 text-[#4a7500] dark:text-[#89D700]'
-            }`}
-          >
-            {unsyncedCount > 0 ? `${unsyncedCount} PENDENTES` : 'TUDO SALVO'}
-          </span>
-        </div>
+    <div className="flex flex-col bg-white dark:bg-[#0a0f1d] relative w-full">
+       {/* Topo indicador animado */}
+       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#FFCD00] to-[#E30613] animate-pulse" />
+       
+       <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between shrink-0">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+             <span className="w-2 h-2 rounded-full bg-[#FFCD00]"></span>
+             Fila de Envio ({pending.length})
+          </h3>
+          <span className="text-[10px] font-bold text-[#FFCD00] uppercase tracking-wider bg-[#FFCD00]/10 px-2 py-1 rounded-lg">Pendente</span>
+       </div>
 
-        {/* Busca */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Buscar item na fila..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0F3B82] dark:focus:border-[#00C3E3] focus:bg-white dark:focus:bg-[#0a0f1d] transition-all placeholder-slate-400"
-          />
-          <Search size={12} className="absolute left-2.5 top-2 text-slate-400" />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-      </header>
+       {/* Lista com Limite de Altura e Scroll */}
+       <div className="overflow-y-auto custom-scrollbar p-3 space-y-2 max-h-[240px]">
+          {pending.map(m => {
+             const item = items.find(i => i.id === m.itemId)
+             return (
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/50 dark:bg-[#FFCD00]/5 border border-amber-100 dark:border-[#FFCD00]/10 hover:bg-amber-100/50 transition-colors group">
+                   <div className={`p-2 rounded-lg shrink-0 ${m.type === 'entrada' ? 'bg-[#89D700]/20 text-[#4a7500]' : 'bg-[#E30613]/20 text-[#E30613]'}`}>
+                      {m.type === 'entrada' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
+                   </div>
+                   
+                   <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate" title={item?.description}>
+                        {item?.description || 'Item desconhecido'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        {m.quantity} un &bull; {new Date(m.date).toLocaleDateString()}
+                      </p>
+                   </div>
 
-      {/* Lista */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0">
-        {filteredMovements.length === 0 ? (
-          <div className="text-center py-6 text-xs text-slate-400 italic">
-            Nenhuma movimentação encontrada para "{searchTerm}"
-          </div>
-        ) : (
-          filteredMovements.map((m) => {
-            const item = items.find((i) => i.id === m.itemId)
-            const isPending = !m.synced
-
-            return (
-              <div
-                key={m.id}
-                className={`group flex items-center gap-3 rounded-xl border p-2.5 transition-all
-              ${
-                isPending
-                  ? 'bg-amber-50/40 dark:bg-[#FFCD00]/5 border-amber-100 dark:border-[#FFCD00]/20'
-                  : 'bg-white dark:bg-[#111827] border-transparent hover:bg-slate-50 dark:hover:bg-[#1f2937]'
-              }`}
-              >
-                {/* Ícone */}
-                <div
-                  className={`p-1.5 rounded-lg shrink-0 ${
-                    m.type === 'entrada'
-                      ? 'bg-[#89D700]/20 text-[#6da800] dark:text-[#89D700]'
-                      : 'bg-[#E30613]/10 text-[#E30613] dark:text-[#E30613]'
-                  }`}
-                >
-                  {m.type === 'entrada' ? (
-                    <ArrowDownRight size={14} strokeWidth={3} />
-                  ) : (
-                    <ArrowUpRight size={14} strokeWidth={3} />
-                  )}
-                </div>
-
-                {/* Detalhes */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate pr-2">
-                      {item?.description ?? 'Item desconhecido'}
-                    </p>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap bg-slate-100 dark:bg-slate-800 px-1.5 rounded">
-                      {m.quantity}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                      {new Date(m.date).toLocaleDateString('pt-BR')}
-                    </span>
-                    {m.document && (
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 border-l border-slate-200 dark:border-slate-700 pl-2 truncate max-w-[80px]">
-                        {m.document}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ações */}
-                <div className="shrink-0 pl-1 flex items-center gap-2">
-                  <div className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Tem certeza?')) onDelete(m.id)
-                      }}
-                      className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-[#E30613] dark:hover:text-[#E30613] hover:bg-red-50 dark:hover:bg-[#E30613]/20 rounded-lg transition-colors"
-                    >
+                   <button 
+                     onClick={() => window.confirm('Remover esta pendência?') && onDelete(m.id)}
+                     className="p-2 text-slate-400 hover:text-[#E30613] hover:bg-white dark:hover:bg-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                     title="Excluir pendência"
+                   >
                       <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  {isPending ? (
-                    <Clock size={14} className="text-[#FFCD00]" />
-                  ) : (
-                    <CheckCircle2 size={14} className="text-slate-200 dark:text-slate-700" />
-                  )}
+                   </button>
                 </div>
-              </div>
-            )
-          })
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-3 py-2 bg-slate-50 dark:bg-[#111827] border-t border-slate-100 dark:border-slate-800 shrink-0">
-        <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5 uppercase tracking-wide font-medium">
-          <RefreshCw size={9} />
-          Sincronização Manual
-        </p>
-      </div>
-    </section>
+             )
+          })}
+       </div>
+    </div>
   )
 }
 

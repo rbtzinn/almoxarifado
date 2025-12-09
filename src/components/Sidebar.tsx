@@ -7,12 +7,12 @@ import {
   UploadCloud,
   FileSpreadsheet,
   X,
-  CheckCircle2,
-  Package,
   Moon,
-  Sun
+  Sun,
+  PieChart
 } from 'lucide-react'
 import { AppAlert } from '../components/ui/AppAlert'
+import ClassificationModal from './ClassificationModal' // Importando o novo componente
 
 interface SidebarProps {
   onCloseMobile: () => void
@@ -21,6 +21,12 @@ interface SidebarProps {
   hasData: boolean
   items: AlmoxItem[]
   movements: Movement[]
+}
+
+type ClassItemInfo = {
+  item: AlmoxItem
+  stock: number
+  total: number
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -36,242 +42,241 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [fileName, setFileName] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // estado da classificação selecionada (para o modal)
+  const [selectedClass, setSelectedClass] = useState<string | null>(null)
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     setLoading(true)
     setFileName(file.name)
     setErrorMessage(null)
-
     try {
       const items = await parseItemsFromFile(file)
       onItemsLoaded(items)
     } catch (err) {
-      console.error('Erro ao ler Excel', err)
-      setErrorMessage(
-        'Não foi possível ler a planilha. Verifique se o arquivo está no formato .xlsx.'
-      )
+      setErrorMessage('Erro ao ler arquivo. Use .xlsx.')
     } finally {
       setLoading(false)
       e.target.value = ''
     }
   }
 
-  // === SOMATÓRIO EM TEMPO REAL ===
-  const totalPorClassificacao = useMemo(() => {
-    const mapa = new Map<string, number>()
+  // Mapa: classificação -> lista de itens (com estoque atual e valor total)
+  const classificationMap = useMemo(() => {
+    const mapa = new Map<string, ClassItemInfo[]>()
+
     items.forEach((item) => {
       const currentStock = getCurrentStock(item.id, items, movements)
-      const valor = currentStock * item.unitPrice
+      const valor = currentStock * (item.unitPrice ?? 0)
+
       if (!Number.isFinite(valor) || Number.isNaN(valor)) return
-      const chave = item.classification ? item.classification.trim() : 'SEM CLASSIFICAÇÃO'
-      mapa.set(chave, (mapa.get(chave) ?? 0) + valor)
+
+      const chave = item.classification ? item.classification.trim() : 'OUTROS'
+      const lista = mapa.get(chave) ?? []
+      lista.push({ item, stock: currentStock, total: valor })
+      mapa.set(chave, lista)
     })
-    const arr = Array.from(mapa.entries())
-    arr.sort((a, b) => b[1] - a[1])
-    return arr
+
+    // ordena itens de cada classificação pelo valor total (desc)
+    mapa.forEach((lista) => {
+      lista.sort((a, b) => b.total - a.total)
+    })
+
+    return mapa
   }, [items, movements])
 
-  const totalGeral = useMemo(
-    () => totalPorClassificacao.reduce((sum, [, value]) => sum + value, 0),
-    [totalPorClassificacao],
+  // Totais por classificação, usando o mapa acima
+  const totalPorClassificacao = useMemo(() => {
+    return Array.from(classificationMap.entries())
+      .map(([classification, lista]) => {
+        const total = lista.reduce((sum, info) => sum + info.total, 0)
+        return [classification, total] as [string, number]
+      })
+      .sort((a, b) => b[1] - a[1])
+  }, [classificationMap])
+
+  // Itens da classificação atualmente selecionada (para o modal)
+  const selectedClassItems = useMemo(() => {
+    if (!selectedClass) return []
+    return classificationMap.get(selectedClass) ?? []
+  }, [selectedClass, classificationMap])
+
+  const totalClassValue = selectedClassItems.reduce(
+    (sum, info) => sum + info.total,
+    0,
   )
 
-  useEffect(() => {
-    try {
-      const payload = {
-        updatedAt: new Date().toISOString(),
-        totalGeral,
-        porClassificacao: totalPorClassificacao.map(([classification, value]) => ({
-          classification,
-          value,
-        })),
-      }
-      localStorage.setItem('almox_totals_v1', JSON.stringify(payload))
-    } catch (e) {
-      console.error('Erro ao salvar totais', e)
-    }
-  }, [totalGeral, totalPorClassificacao])
-
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#0a0f1d] text-slate-600 dark:text-slate-300 border-r border-slate-100 dark:border-[#1e293b] transition-colors duration-300 relative overflow-hidden">
-
-      {/* Header Sidebar APENAS TEXTO */}
-      <div className="p-6 pb-4 flex flex-col shrink-0">
-        <div className="flex items-center justify-between">
-            <div className="text-left">
-                <h1 className="font-extrabold text-[#0F3B82] dark:text-white text-xl tracking-tight leading-none uppercase">
-                  Almoxarifado
-                </h1>
-                <p className="text-[10px] text-[#4800BC] dark:text-[#00C3E3] font-bold uppercase tracking-widest mt-1">
-                  Gestão de Estoque
-                </p>
+    <>
+      <div className="flex flex-col h-full relative">
+        {/* Brand Header */}
+        <div className="p-8 pb-6">
+          <div className="flex items-center justify-between lg:justify-center mb-6">
+            <div className="flex flex-col lg:items-center">
+              <span className="text-[10px] font-bold text-[#4800BC] dark:text-[#00C3E3] uppercase tracking-[0.3em] mb-1">
+                Sistema
+              </span>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">
+                ALMOX<span className="text-[#E30613]">.</span>EMPETUR
+              </h2>
             </div>
-            
             <button
-            onClick={onCloseMobile}
-            className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              onClick={onCloseMobile}
+              className="lg:hidden p-2 text-slate-400"
             >
-            <X size={20} />
+              <X size={24} />
             </button>
+          </div>
+
+          {/* Theme Toggle - Pill Shape */}
+          <button
+            onClick={toggleTheme}
+            className="w-full bg-slate-100 dark:bg-white/5 rounded-full p-1.5 flex relative border border-slate-200 dark:border-white/10"
+          >
+            <div
+              className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white dark:bg-[#0F3B82] rounded-full shadow-sm transition-all duration-300 ${
+                theme === 'light' ? 'left-1.5' : 'left-[calc(50%+3px)]'
+              }`}
+            />
+            <div
+              className={`flex-1 flex items-center justify-center gap-2 relative z-10 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                theme === 'light'
+                  ? 'text-[#0F3B82]'
+                  : 'text-slate-400'
+              }`}
+            >
+              <Sun size={14} /> Light
+            </div>
+            <div
+              className={`flex-1 flex items-center justify-center gap-2 relative z-10 text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                theme === 'dark'
+                  ? 'text-white'
+                  : 'text-slate-400'
+              }`}
+            >
+              <Moon size={14} /> Dark
+            </div>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 custom-scrollbar space-y-6 pb-6">
+          {/* Upload Area - Glass Style */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2">
+              Fonte de Dados
+            </p>
+            <label
+              className={`
+                group relative flex flex-col items-center justify-center w-full aspect-video rounded-3xl border-2 border-dashed transition-all cursor-pointer overflow-hidden
+                ${
+                  hasData
+                    ? 'border-[#89D700] bg-[#89D700]/5'
+                    : 'border-slate-300 dark:border-white/10 hover:border-[#0F3B82] dark:hover:border-[#00C3E3] hover:bg-slate-50 dark:hover:bg-white/5'
+                }
+             `}
+            >
+              <div className="flex flex-col items-center gap-3 z-10 transition-transform group-hover:scale-105 duration-300">
+                {loading ? (
+                  <div className="w-8 h-8 rounded-full border-2 border-[#0F3B82] border-t-transparent animate-spin" />
+                ) : hasData ? (
+                  <div className="w-12 h-12 rounded-2xl bg-[#89D700] text-[#050912] flex items-center justify-center shadow-lg shadow-[#89D700]/30">
+                    <FileSpreadsheet size={24} />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-white/10 text-slate-500 flex items-center justify-center">
+                    <UploadCloud size={24} />
+                  </div>
+                )}
+                <div className="text-center">
+                  <p className="text-sm font-bold text-slate-700 dark:text-white">
+                    {hasData ? 'Arquivo Ativo' : 'Importar XLSX'}
+                  </p>
+                  {fileName && (
+                    <p className="text-[10px] text-slate-400 mt-1 max-w-[150px] truncate">
+                      {fileName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <input
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                onChange={handleFile}
+              />
+            </label>
+
+            {errorMessage && (
+              <AppAlert
+                variant="error"
+                message={errorMessage}
+                onClose={() => setErrorMessage(null)}
+              />
+            )}
+          </div>
+
+          {/* Resumo Categorias */}
+          {hasData && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between px-2">
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Classificações
+                </p>
+                <PieChart size={14} className="text-slate-400" />
+              </div>
+
+              <div className="space-y-2">
+                {totalPorClassificacao.map(([cat, val], idx) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedClass(cat)}
+                    className="w-full group flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-[#0F3B82]/30 dark:hover:border-[#00C3E3]/30 hover:bg-slate-50/70 dark:hover:bg-white/10 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0F3B82]/40 dark:focus:ring-[#00C3E3]/40"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div
+                        className={`w-2 h-8 rounded-full shrink-0 ${
+                          ['bg-[#0F3B82]', 'bg-[#FFCD00]', 'bg-[#89D700]', 'bg-[#E30613]'][idx % 4]
+                        }`}
+                      />
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
+                        {cat}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white">
+                      {new Intl.NumberFormat('pt-BR', {
+                        notation: 'compact',
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(val)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Info */}
+        <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20">
+          <div className="flex items-center justify-between text-[10px] font-medium text-slate-400">
+            <span>v2.5.0 Future</span>
+            <span>EMPETUR</span>
+          </div>
         </div>
       </div>
 
-      <div className="px-6 mb-4 shrink-0">
-        <hr className="border-slate-100 dark:border-slate-800" />
-      </div>
-
-      {/* Botão de Troca de Tema */}
-      <div className="px-6 mb-6 shrink-0">
-        <button
-          onClick={toggleTheme}
-          className="relative w-full h-11 bg-slate-50 dark:bg-[#111827] rounded-xl flex items-center p-1 transition-all border border-slate-200 dark:border-slate-700 shadow-inner"
-        >
-          <div
-            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white dark:bg-[#1f2937] rounded-lg shadow-sm border border-slate-200/50 dark:border-white/5 transition-all duration-300 ease-out ${theme === 'light' ? 'left-1' : 'left-[calc(50%)]'
-              }`}
-          />
-
-          <div className={`flex-1 flex items-center justify-center gap-2 z-10 transition-colors duration-300 ${theme === 'light' ? 'text-[#0F3B82]' : 'text-slate-400'}`}>
-            <Sun size={16} className={`transition-all ${theme === 'light' ? 'scale-110 text-[#FFCD00]' : 'scale-90'}`} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Dia</span>
-          </div>
-
-          <div className={`flex-1 flex items-center justify-center gap-2 z-10 transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-slate-400'}`}>
-            <Moon size={16} className={`transition-all ${theme === 'dark' ? 'scale-110 text-[#00C3E3]' : 'scale-90'}`} />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Noite</span>
-          </div>
-        </button>
-      </div>
-
-      {/* Área de Importação */}
-      <div className="px-6 mb-6 shrink-0">
-        <label
-          className={`
-          group relative flex flex-col items-center justify-center w-full h-36 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden
-          ${hasData
-              ? 'border-[#89D700] bg-[#89D700]/10' // Verde Limão Brand
-              : 'border-slate-200 dark:border-slate-700 hover:border-[#0F3B82] dark:hover:border-[#00C3E3] hover:bg-blue-50/50 dark:hover:bg-[#0F3B82]/10'
-            }
-        `}
-        >
-          <div className="text-center z-10 p-4 flex flex-col items-center">
-            {loading ? (
-              <div className="animate-spin w-6 h-6 border-2 border-slate-300 border-t-[#0F3B82] rounded-full mb-2" />
-            ) : hasData ? (
-              <>
-                <div className="w-10 h-10 bg-[#89D700]/20 text-[#6da800] dark:text-[#89D700] rounded-full flex items-center justify-center mb-2 shadow-sm">
-                  <FileSpreadsheet size={20} />
-                </div>
-                <p className="text-xs font-bold text-[#4a7500] dark:text-[#89D700]">Planilha Ativa</p>
-                <p className="text-[10px] text-slate-500 truncate max-w-[140px] mt-0.5">
-                  {fileName || 'dados.xlsx'}
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-[#0F3B82]/10 group-hover:text-[#0F3B82] dark:group-hover:text-[#00C3E3] transition-all duration-300">
-                  <UploadCloud size={20} />
-                </div>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-[#0F3B82] dark:group-hover:text-[#00C3E3] transition-colors">
-                  Importar Excel
-                </p>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Arraste ou clique aqui</p>
-              </>
-            )}
-          </div>
-          <input type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
-        </label>
-
-        {/* ALERTA DE ERRO DE IMPORTAÇÃO */}
-        {errorMessage && (
-          <div className="mt-3">
-            <AppAlert
-              variant="error"
-              title="Erro ao importar"
-              message={errorMessage}
-              onClose={() => setErrorMessage(null)}
-            />
-          </div>
-        )}
-
-        {hasData && (
-          <>
-            <div className="mt-3 flex items-center justify-between px-2 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <Package size={14} className="text-[#0F3B82] dark:text-[#00C3E3]" />
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Itens carregados</span>
-              </div>
-              <span className="text-xs font-bold text-[#0F3B82] dark:text-white">{currentItemCount}</span>
-            </div>
-
-            {/* Card de resumo financeiro */}
-            <div className="mt-4 space-y-3">
-              {/* Fundo gradiente EMPETUR */}
-              <div className="bg-gradient-to-br from-[#0F3B82] to-[#4800BC] rounded-2xl p-4 text-white shadow-lg shadow-[#0F3B82]/20 dark:shadow-none border border-transparent">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-blue-200 font-bold">
-                      Valor total
-                    </p>
-                    <p className="text-xl font-bold mt-1">
-                      {totalGeral.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
-                    </p>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-                    <CheckCircle2 size={18} className="text-[#89D700]" />
-                  </div>
-                </div>
-                <p className="text-[11px] text-blue-200/80">
-                  Somatório em tempo real.
-                </p>
-              </div>
-
-                            {/* LISTA DE CLASSIFICAÇÕES */}
-              {totalPorClassificacao.length > 0 && (
-                <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-                  {/* Cabeçalho fixo do card */}
-                  <div className="px-3 pt-3 pb-2 border-b border-slate-100/70 dark:border-slate-800/70 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm">
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.18em]">
-                      Resumo por classificação
-                    </p>
-                  </div>
-
-                  {/* Área rolável apenas na lista */}
-                  <div className="max-h-40 overflow-y-auto custom-scrollbar px-3 py-2">
-                    <div className="space-y-1.5 pb-1">
-                      {totalPorClassificacao.map(([classification, value]) => (
-                        <div
-                          key={classification}
-                          className="flex items-center justify-between text-[11px] px-1.5 py-1 rounded-lg hover:bg-white/80 dark:hover:bg-slate-800/70 transition-colors"
-                        >
-                          <span
-                            className="truncate max-w-[130px] text-slate-600 dark:text-slate-400"
-                            title={classification}
-                          >
-                            {classification || 'Sem classificação'}
-                          </span>
-                          <span className="font-semibold text-[#0F3B82] dark:text-[#00C3E3]">
-                            {value.toLocaleString('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            })}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+      {/* COMPONENTE DO MODAL (Renderizado via Portal) */}
+      <ClassificationModal 
+        isOpen={!!selectedClass}
+        onClose={() => setSelectedClass(null)}
+        classification={selectedClass || ''}
+        items={selectedClassItems}
+        totalValue={totalClassValue}
+      />
+    </>
   )
 }
+
 export default Sidebar

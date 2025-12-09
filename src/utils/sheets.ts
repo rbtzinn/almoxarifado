@@ -1,5 +1,6 @@
 // src/utils/sheets.ts
 import type { AlmoxItem, Movement } from '../types'
+import { getCurrentStock } from './stock'
 
 type RowToSend = {
   movementId: string
@@ -13,6 +14,33 @@ type RowToSend = {
   saldoDepois: number
   document: string
   notes: string
+}
+
+type InventoryRowToSend = {
+  classification: string
+  description: string
+  currentQty: number
+  unitPrice: number
+  stockValue: number
+  initialQty: number
+}
+
+function buildInventoryRows(items: AlmoxItem[], movements: Movement[]): InventoryRowToSend[] {
+  return items.map((item) => {
+    const currentQty = getCurrentStock(item.id, items, movements)
+    const unitPrice = item.unitPrice ?? 0
+    const initialQty = item.initialQty ?? 0
+    const stockValue = currentQty * unitPrice
+
+    return {
+      classification: item.classification ?? '',
+      description: item.description ?? '',
+      currentQty,
+      unitPrice,
+      stockValue,
+      initialQty,
+    }
+  })
 }
 
 function buildRows(items: AlmoxItem[], movements: Movement[]): RowToSend[] {
@@ -146,4 +174,43 @@ export async function syncMovementsToGoogleSheet(
   })
 
   return updatedMovements
+}
+
+const webAppUrl = import.meta.env.VITE_SHEETS_WEBAPP_URL as string | undefined
+
+export async function syncInventoryToGoogleSheet(
+  items: AlmoxItem[],
+  movements: Movement[],
+): Promise<void> {
+  if (!items.length) return
+  if (!webAppUrl) {
+    throw new Error('URL do WebApp do Google Apps Script não configurada (VITE_SHEETS_WEBAPP_URL).')
+  }
+
+  const inventoryRows = buildInventoryRows(items, movements)
+
+  const payload = {
+    target: 'INVENTARIO',
+    mode: 'REPLACE',
+    items: inventoryRows,
+  }
+
+  // --- CORREÇÃO AQUI ---
+  const resp = await fetch(webAppUrl, {
+    method: 'POST',
+    // NÃO use 'application/json'. O Google Apps Script não lida bem com o preflight (OPTIONS).
+    // Ao usar o padrão (text/plain) ou omitir o header, o navegador envia como "Simples Request"
+    // e o CORS funciona. O corpo continua sendo JSON stringificado.
+    body: JSON.stringify(payload),
+  })
+  // ---------------------
+
+  if (!resp.ok) {
+    throw new Error('Falha ao atualizar aba INVENTARIO COMPLETO.')
+  }
+
+  const data = await resp.json()
+  if (!data.success) {
+    throw new Error(data.error || 'Erro ao atualizar INVENTARIO COMPLETO.')
+  }
 }
